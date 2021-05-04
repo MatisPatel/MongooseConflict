@@ -9,8 +9,8 @@ using DrWatson
 world = Dict{Symbol, Any}(
     :nGens => 1,
     :realGen => 500,
-    :q => 5,
-    :n => 5,
+    :q => 3,
+    :n => 3,
     :gain => [0.1, 0.2],
     :loss => [0.1, 0.2],
     :basem => 0.1,
@@ -998,7 +998,7 @@ function runSim(world)
         err = sum(corrErr(world[:gradX], world[:tX]) +
         corrErr(world[:gradY], world[:tY]))
         println(i, " --- ",  err)
-        if err < 1E-6
+        if err < 1E-10
             world[:itr] = i
             break
         end
