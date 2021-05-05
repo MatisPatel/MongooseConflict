@@ -1025,8 +1025,8 @@ cosm[:nGens] = cosm[:realGen]
 # worldSet = dict_list(world)
 
 # for cosm in worldSet
-@time resWorld = produceSim(cosm)
-safesave(joinpath("rds", "user", "mmp38", "hpc-work", savename(world, "bson")), resWorld)
+resWorld = produceSim(cosm)
+safesave(joinpath("~", "rds", "hpc-work", savename(world, "bson")), resWorld)
 # end
 
 # world = produceSim(worldSet[1])
