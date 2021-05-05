@@ -998,7 +998,7 @@ function runSim(world)
         err = sum(corrErr(world[:gradX], world[:tX]) +
         corrErr(world[:gradY], world[:tY]))
         println(i, " --- ",  err)
-        if err < 1E-10
+        if err < 1E-9
             world[:itr] = i
             break
         end
