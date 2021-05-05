@@ -1,0 +1,62 @@
+%!TeX spellcheck = en-GB
+\documentclass[12pt]{article}
+\usepackage[bookmarks,hidelinks]{hyperref}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[round]{natbib}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{cleveref}
+\usepackage[font=footnotesize]{caption}
+\usepackage{subcaption}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{geometry}
+\usepackage[outdir=./]{epstopdf}
+\usepackage{lineno}
+% \usepackage[nolists, nomarkers]{endfloat}
+\usepackage{kpfonts}
+\usepackage{placeins}
+% \usepackage[textsize=tiny]{todonotes}
+
+\let\oldequation\align
+\let\oldendequation\endalign
+\renewenvironment{align}
+  {\linenomathNonumbers\oldequation}
+  {\oldendequation\endlinenomath}
+
+ \geometry{
+ a4paper,
+ left=35mm,
+ right=35mm,
+ bottom=25mm,
+ top=25mm
+ }
+\doublespacing
+
+\bibliographystyle{agsm}
+
+\title{Mongoose Proj}
+\author{Matishalin Patel, Michael Cant, and Rufus Johnstone}
+\date{}
+\pagenumbering{gobble}
+\begin{document}
+\linenumbers
+\maketitle
+\section{Abstract}
+	Lorem Ipsum
+\subsection*{keywords:}
+intragroup cooperation, intergroup conflict, game theory, social evolution
+
+\input{Introduction}
+\input{Model}
+\input{Discussion}
+% \FloatBarrier
+\nocite{*}
+\bibliography{mongoose}
+% \include{figures}
+\appendix
+\numberwithin{equation}{section}
+\setcounter{equation}{0}
+\input{Appendix}
+\end{document}

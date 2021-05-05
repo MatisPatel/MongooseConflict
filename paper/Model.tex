@@ -1,0 +1,27 @@
+\section{Model}
+
+In our model we sought to understand the link between resource richness for an cooperative group and their resulting investemnts into two social traits. The first trait is a cooperative trait modelled as a simple public good which helped all member of the patch to survive for longer ($\mathbf{X}$). The second is a competitive trait modelled as a simple blind bid game the winning group then gaining control of one of the loser's resources ($\mathbf{Y}$). 
+
+We modeled an infinite population consisting of individual patches. A patch is identified by its quality level, $q \in \mathbb{Z} : q \in \left[ 0, Q \right]]$, and the number of individuals on the patch, $n \in \mathbb{Z} : n \in \left[ 0, N \right]]$. Where the maximum quality, $Q$, and maximum group size, $N$, are predetermined parameters. 
+
+The distribution of patches in the population can therefore be described by a $q \times n$ matrix $\mathbf{F}$ with elements $f_{q,n}$. Equally, the evolved strategies of cooperation, $\mathbf{X}$, and conflict, $\mathbf{Y}$ are matricies which indicate the strategy of individual in state $\{q, n\}$. 
+
+To find the stable distribution of patch frequencies we first derived the quations for how frequencies change in the model. We constructed a matrix $\mathbf{F}'$ which describes how demographic processes and between patch interactions affect the frequency of each patch type.
+
+\subsection{Environmental transitions}
+The environment may gain and lose resources naturally through varaition in various abiotic and biotic factors that are not controllable by the individuals we model. This represents the natural gain and loss from the environment.
+
+\begin{align}
+    f'_{q,n} \mathrel{+}= \sum^Q_{q_1=0} \sum^Q_{q_2=0}  t_{q_2, q_1} f_{q_2, n} - t_{q_1, q_2} f_{q_1, n} \,
+\end{align}
+
+where, $\mathbf{T}$ is a $q \times q$ matrix with entries being this environmental rate of change. In our model we further specified that the matrix $\mathbf{T}$ is a sparse matrix with a subdiagonal where all entries equal to some gain value and a superdiagonal where all values equal to a loss value. This ensures gains and losses happen in stepwise manner and patches may not gain or lose more than one resource at once.
+
+\subsection{Natural mortality}
+Death may occur through natural causes at any time causing a patch to lose members. We modelled beth the cooperative and competitive traits as causing a cost to survival. The cooperative trait however offset that cost by reducing overall mortality on the patch based on the averge cooperation level. 
+
+\begin{align}
+    f'_{q,n} &\mathrel{+}= \sum^N_{n=1} (n+1) f_{q, n+1} m_{q, n+1} - n\ f_{q, n} m_{q, n} \\
+    \text{where, }&\nonumber\\ 
+    m_{q,n} &= B\,\exp\left( -n \left( \frac{n\ x_{q,n}}{n} \right) \right) + \mu_x x_{q,n}^2 + \mu_y y_{q,n}^2
+\end{align}
