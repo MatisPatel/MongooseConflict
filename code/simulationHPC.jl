@@ -1015,6 +1015,8 @@ function produceSim(world)
     return res
 end
 
+println("TASK: ", ENV["SLURM_ARRAY_TASK_ID"])
+
 index = parse(Int64, ENV["SLURM_ARRAY_TASK_ID"])
 worldSet = dict_list(world)
 cosm = worldSet[index]
@@ -1026,7 +1028,7 @@ cosm[:nGens] = cosm[:realGen]
 
 # for cosm in worldSet
 resWorld = produceSim(cosm)
-safesave(joinpath("~", "rds", "hpc-work", savename(world, "bson")), resWorld)
+safesave(joinpath("~", "rds", "hpc-work", savename(cosm, "bson")), resWorld)
 # end
 
 # world = produceSim(worldSet[1])
