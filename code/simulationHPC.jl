@@ -1028,7 +1028,7 @@ cosm[:nGens] = cosm[:realGen]
 
 # for cosm in worldSet
 resWorld = produceSim(cosm)
-safesave(joinpath("~", "rds", "hpc-work", savename(cosm, "bson")), resWorld)
+safesave(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), resWorld)
 # end
 
 # world = produceSim(worldSet[1])
