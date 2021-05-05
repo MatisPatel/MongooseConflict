@@ -1015,21 +1015,22 @@ function produceSim(world)
     return res
 end
 
-println("TASK: ", ENV["SLURM_ARRAY_TASK_ID"])
+@time begin
+    println("TASK: ", ENV["SLURM_ARRAY_TASK_ID"])
 
-index = parse(Int64, ENV["SLURM_ARRAY_TASK_ID"])
-worldSet = dict_list(world)
-cosm = worldSet[index]
+    index = parse(Int64, ENV["SLURM_ARRAY_TASK_ID"])
+    worldSet = dict_list(world)
+    cosm = worldSet[index]
 
-w1 = produceSim(cosm)
+    w1 = produceSim(cosm)
 
-cosm[:nGens] = cosm[:realGen]
-# worldSet = dict_list(world)
+    cosm[:nGens] = cosm[:realGen]
+    # worldSet = dict_list(world)
 
-# for cosm in worldSet
-resWorld = produceSim(cosm)
-safesave(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), resWorld)
-# end
+    # for cosm in worldSet
+    resWorld = produceSim(cosm)
+    safesave(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), resWorld)
+end
 
 # world = produceSim(worldSet[1])
 
