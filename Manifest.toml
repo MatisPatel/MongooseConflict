@@ -41,6 +41,11 @@ git-tree-sha1 = "d582e11da70b03b217ff30dd4bbd4f619a9ba7c0"
 uuid = "c85a633c-0c3f-44a2-bffe-7f9d0681b3e7"
 version = "0.1.0"
 
+[[BSON]]
+git-tree-sha1 = "92b8a8479128367aaab2620b8e73dff632f5ae69"
+uuid = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
+version = "0.3.3"
+
 [[BangBang]]
 deps = ["Compat", "ConstructionBase", "Future", "InitialValues", "LinearAlgebra", "Requires", "Setfield", "Tables", "ZygoteRules"]
 git-tree-sha1 = "d53b1eaefd48e233545d21f5b764c8ee54df4a09"
