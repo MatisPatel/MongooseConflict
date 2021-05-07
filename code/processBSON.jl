@@ -27,7 +27,7 @@ for i in 1:5
             end
         end
     end
-    safesave(joinpath(resdir, string(tempDict[:ID], ".bson")), tempDict)
+    save(joinpath(resdir, string(tempDict[:ID], ".bson")), tempDict)
     # rowDat = DataFrame(;tempDict...)
     # global fullDat = outerjoin(fullDat, rowDat, on = names(rowDat))
     # append!(fullDat, rowDat)
