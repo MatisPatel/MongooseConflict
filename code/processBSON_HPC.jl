@@ -10,7 +10,7 @@ files  = readdir(datdir)
 
 rows=[]
 fullDat = DataFrame(Dict(:ID => 0))
-for i in 1:5
+for i in 1:length(files)
     testDat = load(joinpath(datdir, files[i]))
 
     tempDict = Dict{Symbol, Any}(:ID=>i)
@@ -27,7 +27,7 @@ for i in 1:5
             end
         end
     end
-    safesave(joinpath(resdir, string(tempDict[:ID], ".bson")), tempDict)
+    save(joinpath(resdir, string(tempDict[:ID], ".bson")), tempDict)
     # rowDat = DataFrame(;tempDict...)
     # global fullDat = outerjoin(fullDat, rowDat, on = names(rowDat))
     # append!(fullDat, rowDat)
