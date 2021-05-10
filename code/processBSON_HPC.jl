@@ -2,6 +2,7 @@ using BSON
 using DataFrames
 using DrWatson
 using CSV
+using StatsBase
 
 datdir = joinpath("/home", "mmp38", "rds", "hpc-work")
 resdir = joinpath("..", "results")
@@ -14,6 +15,7 @@ for i in 1:length(files)
     testDat = load(joinpath(datdir, files[i]))
     normF = testDat[:tF][:, 2:end]./sum(testDat[:tF][:, 2:end])
     nArray = repeat([i for i in 1:(testDat[:n]-1)]', testDat[:q])
+    testDat[:avgR] = mean(testDat[:tR][:, 3:end])
     testDat[:tXw] = testDat[:tX][:, 2:end] .* normF
     testDat[:tYw] = testDat[:tY][:, 2:end] .* normF
     testDat[:groupAvgX] = sum(testDat[:tXw])
@@ -43,4 +45,4 @@ end
 
 # make CSV 
 df = collect_results(resdir)
-CSV.write(joinpath(resdir, "firstRun"), df)
+CSV.write(joinpath(resdir, "firstRun.csv"), df)
