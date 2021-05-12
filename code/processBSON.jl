@@ -23,6 +23,7 @@ for i in 1:5
     testDat[:groupAvgY] = sum(testDat[:tYw])
     testDat[:indAvgY] = sum(testDat[:tYw] .*  nArray)/ sum(normF .* nArray)
 
+    AnArray = nArray[:, 1]
     testDat[:AtXw] = testDat[:tXw][:, 1]
     testDat[:AtYw] = testDat[:tYw][:, 1]
     testDat[:AgroupAvgX] = sum(testDat[:AtXw])
