@@ -20,7 +20,7 @@ classifier <- function(gain, loss){
 
 vclassifier <- Vectorize(classifier)
 
-dat <- read_csv('../results/firstRun') %>% 
+dat <- read_csv('../results/firstRun.csv') %>% 
   distinct(d, epsilon, gain, loss, .keep_all=TRUE) %>%
   mutate(gain_loss = paste(gain, loss, sep="_"),
          envRatio = gain/loss,
@@ -29,25 +29,92 @@ dat <- read_csv('../results/firstRun') %>%
          treat = vclassifier(gain, loss))
 
 plotDat <- filter(dat, 
-                  tn==2,
                   d>0, epsilon<20) %>%
-  group_by(d, epsilon, treat) %>%
+  group_by(tn, d, epsilon, treat) %>%
   summarise(
     gX = mean(groupAvgX),
     iX = mean(indAvgX),
     gY = mean(groupAvgY),
     iY = mean(indAvgY),
-    avgR = mean(R)
+    avgR = mean(avgR)
   ) %>%
+  mutate(
+    investGY = gY/(gX+gY),
+    investGX = gX/(gX+gY),
+    investIY = iY/(iX+iY),
+    totalG = gY+gX
+    )%>%
   ungroup()
 
-ggplot(plotDat) +
+# soical Y
+ggplot(filter(plotDat, tn==2)) +
   facet_grid(~epsilon, scales="free") +
-  geom_path(aes(d, gY,  color=treat)) +
+  geom_path(aes(avgR, investGY,  color=treat), size=1) +
+  scale_colour_brewer(palette = "Dark2") +
+  my_theme
+
+#asocial Y
+ggplot(filter(plotDat, tn==1)) +
+  facet_grid(~epsilon, scales="free") +
+  geom_path(aes(avgR, investGY,  color=treat), size=1) +
+  scale_colour_brewer(palette = "Dark2") +
   my_theme
 
 ggplot(plotDat) +
   facet_grid(~epsilon, scales="free") +
-  geom_path(aes(d, gY,  color=treat)) +
+  geom_path(aes(avgR, gY,  color=treat), size=1) +
+  scale_colour_brewer(palette = "Dark2") +
+  my_theme
+
+ggplot(plotDat) +
+  facet_grid(~epsilon, scales="free") +
+  geom_path(aes(avgR, gX,  color=treat), size=1) +
+  scale_colour_brewer(palette = "Dark2") +
+  my_theme
+
+ggplot(plotDat) +
+  facet_grid(~epsilon, scales="free") +
+  geom_path(aes(avgR, totalG,  color=treat), size=1) +
+  scale_colour_brewer(palette = "Dark2") +
+  my_theme
+
+fullplotDat <- filter(dat, 
+                      tn==2,
+                      d>0, epsilon<20) %>%
+  group_by(d,epsilon, stability, envRatio) %>%
+  summarise(
+    gX = mean(groupAvgX),
+    iX = mean(indAvgX),
+    gY = mean(groupAvgY),
+    iY = mean(indAvgY),
+    avgR = mean(avgR)
+  ) %>%
+  mutate(
+    investGY = gY/(gX+gY),
+    investGX = gX/(gX+gY),
+    investIY = iY/(iX+iY),
+    totalG = gY+gX
+  )%>%
+  ungroup()
+
+
+ggplot(filter(fullplotDat), 
+       aes(log(envRatio), investGY, colour=as.factor(epsilon))) +
+  geom_point() + 
+  geom_line(stat="smooth",
+            method ="lm", 
+            se=FALSE,
+            size =1, alpha=0.4) +
+  scale_colour_brewer(palette = "Dark2") +
+  my_theme
+
+ggplot(filter(fullplotDat), 
+       aes(log(stability), investGY, colour=as.factor(epsilon))) +
+  geom_point() + 
+  geom_line(stat="smooth",
+            method ="lm", 
+            se=FALSE,
+            size =1, alpha=0.4)+
+  scale_colour_brewer(palette = "Dark2") +
   my_theme
 

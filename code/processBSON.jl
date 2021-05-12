@@ -23,6 +23,20 @@ for i in 1:5
     testDat[:groupAvgY] = sum(testDat[:tYw])
     testDat[:indAvgY] = sum(testDat[:tYw] .*  nArray)/ sum(normF .* nArray)
 
+    testDat[:AtXw] = testDat[:tXw][:, 1]
+    testDat[:AtYw] = testDat[:tYw][:, 1]
+    testDat[:AgroupAvgX] = sum(testDat[:AtXw])
+    testDat[:AindAvgX] = sum(testDat[:AtXw] .*  AnArray)/ sum(normF .* nArray)
+    testDat[:AgroupAvgY] = sum(testDat[:AtYw])
+    testDat[:AindAvgY] = sum(testDat[:AtYw] .*  AnArray)/ sum(normF .* nArray)
+
+    SnArray = nArray[:, 2:end]
+    testDat[:StXw] = testDat[:tX][:, 3:end] .* normF[:, 2:end]
+    testDat[:StYw] = testDat[:tY][:, 3:end] .* normF[:, 2:end]
+    testDat[:SgroupAvgX] = sum(testDat[:StXw])
+    testDat[:SindAvgX] = sum(testDat[:StXw] .*  SnArray)/ sum(normF .* nArray)
+    testDat[:SgroupAvgY] = sum(testDat[:StYw])
+    testDat[:SindAvgY] = sum(testDat[:StYw] .*  SnArray)/ sum(normF .* nArray)
     tempDict = Dict{Symbol, Any}(:ID=>i)
     for (key, val) in testDat
         if !isa(val, Array)
