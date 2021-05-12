@@ -24,8 +24,8 @@ for i in 1:length(files)
     testDat[:indAvgY] = sum(testDat[:tYw] .*  nArray)/ sum(normF .* nArray)
 
     AnArray = nArray[:, 1]
-    testDat[:AtXw] = testDat[:tXw][:, 1]
-    testDat[:AtYw] = testDat[:tYw][:, 1]
+    testDat[:AtXw] = testDat[:tXw][:, 1:1]
+    testDat[:AtYw] = testDat[:tYw][:, 1:1]
     testDat[:AgroupAvgX] = sum(testDat[:AtXw])
     testDat[:AindAvgX] = sum(testDat[:AtXw] .*  AnArray)/ sum(normF .* nArray)
     testDat[:AgroupAvgY] = sum(testDat[:AtYw])
