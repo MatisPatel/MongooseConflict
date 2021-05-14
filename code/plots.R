@@ -26,11 +26,12 @@ dat <- read_csv('../results/firstRun.csv') %>%
          envRatio = gain/loss,
          avgRat = 1/((1/gain + 1/loss)/2),
          stability = 1/avgRat,
-         treat = vclassifier(gain, loss))
+         treat = vclassifier(gain, loss)) %>%
+  filter(err < 0.00000001)
 
 plotDat <- filter(dat, 
                   d>0, epsilon<20) %>%
-  group_by(tn, d, epsilon, treat) %>%
+  group_by(tq, d, epsilon, treat) %>%
   summarise(
     gX = mean(groupAvgX),
     iX = mean(indAvgX),
@@ -59,7 +60,7 @@ plotDat <- filter(dat,
   ungroup()
 
 #total Y
-ggplot(filter(plotDat)) +
+ggplot(filter(plotDat, epsilon %in% c(1, 5, 10))) +
   facet_grid(~epsilon, scales="free") +
   geom_path(aes(avgR, investGY,  color=as.factor(treat)), size=1) +
   scale_colour_brewer(palette = "Dark2") +
@@ -180,7 +181,43 @@ ggplot(pd2, aes(log(stability), yval)) +
   scale_colour_brewer(palette = "Dark2") +
   my_theme
 
+fullplotDat <- filter(dat, 
+                      d>0, epsilon<20) %>%
+  group_by(epsilon, envRatio) %>%
+  summarise(
+    gX = mean(groupAvgX),
+    iX = mean(indAvgX),
+    gY = mean(groupAvgY),
+    iY = mean(indAvgY),
+    AgX = mean(AgroupAvgX),
+    AiX = mean(AindAvgX),
+    AgY = mean(AgroupAvgY),
+    AiY = mean(AindAvgY),
+    SgX = mean(SgroupAvgX),
+    SiX = mean(SindAvgX),
+    SgY = mean(SgroupAvgY),
+    SiY = mean(SindAvgY),
+    avgR = mean(avgR)
+  ) %>%
+  mutate(
+    investGY = gY/(gX+gY),
+    investGYA = AgY/(AgX+AgY),
+    investGYS = SgY/(SgX+SgY),
+    investGX = gX/(gX+gY),
+    investIY = iY/(iX+iY),
+    totalG = gY+gX,
+    totalGA = (AgX+AgY),
+    totalGA = (SgX+SgY)
+  )%>%
+  ungroup()
 
+ggplot(fullplotDat) + 
+  geom_path(aes((epsilon), gY/mean(gY), colour=as.factor(stability)))+
+  geom_path(aes((epsilon), gX/mean(gX), colour=as.factor(stability)))
+
+ggplot(fullplotDat) + 
+  geom_path(aes((epsilon), gY, colour=as.factor(envRatio)))+
+  geom_path(aes((epsilon), gX, colour=as.factor(envRatio)))
 
 # ggplot(filter(fullplotDat)) +
 #    geom_point(aes(log(stability), investGYS, colour=as.factor(epsilon)), 

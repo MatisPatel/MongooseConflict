@@ -9,6 +9,11 @@ resdir = joinpath("..", "results")
 
 files  = readdir(datdir)
 
+function mortFun(n, x, y, B, multX, multY)
+    calc = B*2.718^(-1 * (n)*((x*(n-1) + x)/n)) + multX*x^2 + multY*y^2
+    return calc
+end
+
 rows=[]
 fullDat = DataFrame(Dict(:ID => 0))
 for i in 1:length(files)
@@ -38,6 +43,12 @@ for i in 1:length(files)
     testDat[:SindAvgX] = sum(testDat[:StXw] .*  SnArray)/ sum(normF .* nArray)
     testDat[:SgroupAvgY] = sum(testDat[:StYw])
     testDat[:SindAvgY] = sum(testDat[:StYw] .*  SnArray)/ sum(normF .* nArray)
+
+    testDat[:avgMort] = mean(mortFun.(nArray, testDat[:tX][:,2:end], testDat[:tY][:,2:end], testDat[:basem], testDat[:multX], testDat[:multY]))
+    testDat[:meanFit] = mean(testDat[:tW][:, 2:end])
+    testDat[:fit1] = mean(testDat[:tW][1, 2:end])
+    testDat[:fit2] = mean(testDat[:tW][2, 2:end])
+    testDat[:qVal] = mean(mapslices(diff, testDat[:tW], dims=1))
 
     tempDict = Dict{Symbol, Any}(:ID=>i)
     for (key, val) in testDat
