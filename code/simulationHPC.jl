@@ -7,7 +7,7 @@ using DrWatson
 
 
 world = Dict{Symbol, Any}(
-    :force => [0.5, 0],
+    :force => [0.5, 0.0],
     :nGens => 1,
     :realGen =>  [@onlyif(:force==0.5, 1000), @onlyif(:force==0, 10)],
     :q => 5,
@@ -28,12 +28,14 @@ world = Dict{Symbol, Any}(
         [2, 3, 4, 6, 7, 8, 9])...
     ],
     :multX => 0.1,
-    :multY => 0.1
+    :multY => 0.1,
+    :temp => Array{Any, 2}
 )
 
 world[:size] = world[:n]*world[:q]
-
 # worldSet = dict_list(world)
+# cosm = worldSet[30]
+# w1 = produceSim(cosm)
 
 @variables begin 
     F[1:world[:q], 1:world[:n]]
