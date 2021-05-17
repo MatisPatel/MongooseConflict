@@ -7,20 +7,20 @@ using DrWatson
 
 
 world = Dict{Symbol, Any}(
+    :force => [0.5, 0],
     :nGens => 1,
-    :realGen => 500,
-    :q => 3,
+    :realGen =>  [@onlyif(:force==0.5, 1000), @onlyif(:force==0, 10)],
+    :q => 5,
     :n => 3,
-    :gain => [0.1, 0.2],
-    :loss => [0.1, 0.2],
+    :gain => 0.1,
+    :loss => 0.2,
     :basem => 0.1,
     :k => 0.1,
     :b => 0.3,
-    :d => collect(0:0.1:1),
-    :epsilon => [1, 5, 10],
+    :d => 0.1,
+    :epsilon => 1,
     :multX => 0.1,
     :multY => 0.1,
-    :force => 1,
     :placeholder => [[], []]
 )
 
@@ -998,7 +998,7 @@ function runSim(world)
         err = sum(corrErr(world[:gradX], world[:tX]) +
         corrErr(world[:gradY], world[:tY]))
         println(i, " --- ",  err)
-        if err < 1E-10
+        if err < 1E-9
             world[:itr] = i
             break
         end
@@ -1017,11 +1017,13 @@ end
 
 w1 = produceSim(worldSet[1])
 
-world[:nGens] = world[:realGen]
-worldSet = dict_list(world)[1:2]
-
+# world[:nGens] = world[:realGen]
+# worldSet = dict_list(world)
+ls =[]
 for cosm in worldSet
+    cosm[:nGens] = cosm[:realGen]
     resWorld = produceSim(cosm)
+    push!(ls, resWorld)
     safesave(joinpath("..", "data", savename(world, "bson")), resWorld)
 end
 

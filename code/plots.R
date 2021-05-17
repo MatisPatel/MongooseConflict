@@ -26,8 +26,9 @@ dat <- read_csv('../results/firstRun.csv') %>%
          envRatio = gain/loss,
          avgRat = 1/((1/gain + 1/loss)/2),
          stability = 1/avgRat,
-         treat = vclassifier(gain, loss)) %>%
-  filter(err < 0.00000001)
+         treat = vclassifier(gain, loss)) 
+# %>%
+#   filter(err<0.1)
 
 plotDat <- filter(dat, 
                   d>0, epsilon<20) %>%
@@ -45,7 +46,11 @@ plotDat <- filter(dat,
     SiX = mean(SindAvgX),
     SgY = mean(SgroupAvgY),
     SiY = mean(SindAvgY),
-    avgR = mean(avgR)
+    avgR = mean(avgR),
+    avgMort = mean(avgMort),
+    fit1 = mean(fit1),
+    fit2 = mean(fit2),
+    avgFit = mean(meanFit)
   ) %>%
   mutate(
     investGY = gY/(gX+gY),
@@ -60,7 +65,7 @@ plotDat <- filter(dat,
   ungroup()
 
 #total Y
-ggplot(filter(plotDat, epsilon %in% c(1, 5, 10))) +
+ggplot(filter(plotDat, epsilon %in% c(1,5,10))) +
   facet_grid(~epsilon, scales="free") +
   geom_path(aes(avgR, investGY,  color=as.factor(treat)), size=1) +
   scale_colour_brewer(palette = "Dark2") +
@@ -131,7 +136,11 @@ fullplotDat <- filter(dat,
     SiX = mean(SindAvgX),
     SgY = mean(SgroupAvgY),
     SiY = mean(SindAvgY),
-    avgR = mean(avgR)
+    avgR = mean(avgR),
+    avgMort = mean(avgMort),
+    fit1 = mean(fit1),
+    fit2 = mean(fit2),
+    avgFit = mean(meanFit)
   ) %>%
   mutate(
     investGY = gY/(gX+gY),
@@ -147,6 +156,9 @@ fullplotDat <- filter(dat,
 
 pd2 <- fullplotDat %>%
   pivot_longer(c(investGYS, investGYA), names_to = "Y_ratio", values_to = "yval")
+
+ggplot(pd2, aes(log(envRatio), avgFit)) +
+  geom_point()
 
 ggplot(pd2, aes(log(envRatio), yval)) +
   geom_point(aes(shape=Y_ratio, colour=as.factor(epsilon)), alpha=0.1) +

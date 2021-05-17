@@ -7,8 +7,9 @@ using DrWatson
 
 
 world = Dict{Symbol, Any}(
+    :force => [0.5, 0],
     :nGens => 1,
-    :realGen => 500,
+    :realGen =>  [@onlyif(:force==0.5, 1000), @onlyif(:force==0, 10)],
     :q => 5,
     :n => 3,
     :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
@@ -16,19 +17,18 @@ world = Dict{Symbol, Any}(
     :basem => 0.1,
     :k => 0.1,
     :b => 0.3,
-    :d => collect(0:0.1:1),    
+    # :d => collect(0:0.1:1),    
     :d => [0.1, 0.5, 0.9, 
         @onlyif(:epsilon in (1, 5, 10), 
         [0.2, 0.3, 0.4, 0.6, 0.7, 0.8])...
     ],
-    :epsilon => [1, 5, 10],
+    # :epsilon => [1, 5, 10],
     :epsilon => [1, 5, 10, 
         @onlyif(:d in (0.1, 0.5, 0.9), 
         [2, 3, 4, 6, 7, 8, 9])...
     ],
     :multX => 0.1,
-    :multY => 0.1,
-    :force => 1
+    :multY => 0.1
 )
 
 world[:size] = world[:n]*world[:q]
