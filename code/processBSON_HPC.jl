@@ -52,6 +52,7 @@ for i in 1:length(files)
     testDat[:qVal] = mean(mapslices(diff, testDat[:relW], dims=1))
 
     testDat[:totFreq] = sum(testDat[:tF])
+    testDat[:collapsed] = isapprox(sum(testDat[:tF][:, 1]), 1; atol=1E-9) 
 
     tempDict = Dict{Symbol, Any}(:ID=>i)
     for (key, val) in testDat

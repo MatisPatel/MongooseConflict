@@ -116,7 +116,7 @@ ggplot(plotDat) +
 # soical Y 
 ggplot(filter(plotDat)) +
   facet_grid(~epsilon, scales="free") +
-  geom_path(aes(avgR, investGYS,  color=treat), size=1) +
+  geom_path(aes(avgR, investGY,  color=treat), size=1) +
   scale_colour_brewer(palette = "Dark2") +
   my_theme
 
