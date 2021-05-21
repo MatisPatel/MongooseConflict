@@ -45,10 +45,13 @@ for i in 1:length(files)
     testDat[:SindAvgY] = sum(testDat[:StYw] .*  SnArray)/ sum(normF .* nArray)
 
     testDat[:avgMort] = mean(mortFun.(nArray, testDat[:tX][:,2:end], testDat[:tY][:,2:end], testDat[:basem], testDat[:multX], testDat[:multY]))
-    testDat[:meanFit] = mean(testDat[:tW][:, 2:end])
-    testDat[:fit1] = mean(testDat[:tW][1, 2:end])
-    testDat[:fit2] = mean(testDat[:tW][2, 2:end])
-    testDat[:qVal] = mean(mapslices(diff, testDat[:tW], dims=1))
+    testDat[:relW] = testDat[:tW]./mean(testDat[:tW])
+    testDat[:meanFit] = mean(testDat[:relW][:, 2:end])
+    testDat[:fit1] = mean(testDat[:relW][1, 2:end])
+    testDat[:fit2] = mean(testDat[:relW][2, 2:end])
+    testDat[:qVal] = mean(mapslices(diff, testDat[:relW], dims=1))
+
+    testDat[:totFreq] = sum(testDat[:tF])
 
     tempDict = Dict{Symbol, Any}(:ID=>i)
     for (key, val) in testDat
@@ -73,4 +76,4 @@ end
 
 # make CSV 
 df = collect_results(resdir)
-CSV.write(joinpath(resdir, "firstRun.csv"), df)
+CSV.write(joinpath(resdir, "second.csv"), df)
