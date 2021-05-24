@@ -12,8 +12,10 @@ world = Dict{Symbol, Any}(
     :realGen =>  [@onlyif(:force==0.5, 1000), @onlyif(:force==0, 10)],
     :q => 5,
     :n => 3,
-    :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
-    :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
+    # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
+    # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
+    :stab => collect(2:4:20),
+    :ratio => vcat(0.1, collect(0.2:0.2:0.8), 0.9),
     :basem => 0.1,
     :k => 0.1,
     :b => 0.3,
@@ -1033,6 +1035,8 @@ end
     # worldSet = dict_list.(dict_list(world))
     # worldSet = collect(Iterators.flatten(worldSet))
     cosm = worldSet[index]
+    cosm[:gain] = cosm[:ratio]/cosm[:stab]
+    cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
 
     w1 = produceSim(cosm)
 
@@ -1041,7 +1045,7 @@ end
 
     # for cosm in worldSet
     resWorld = produceSim(cosm)
-    safesave(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), resWorld)
+    save(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), resWorld)
 end
 
 # world = produceSim(worldSet[1])

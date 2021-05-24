@@ -12,8 +12,10 @@ world = Dict{Symbol, Any}(
     :realGen =>  [@onlyif(:force==0.5, 1000), @onlyif(:force==0, 10)],
     :q => 5,
     :n => 3,
-    :gain => 0.1,
-    :loss => 0.2,
+    # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
+    # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
+    :stab => collect(2:2:20),
+    :ratio => collect(0.1:0.1:0.9),
     :basem => 0.1,
     :k => 0.1,
     :b => 0.3,
@@ -998,7 +1000,7 @@ function runSim(world)
         err = sum(corrErr(world[:gradX], world[:tX]) +
         corrErr(world[:gradY], world[:tY]))
         println(i, " --- ",  err)
-        if err < 1E-9
+        if err < 1E-6
             world[:itr] = i
             break
         end
@@ -1015,16 +1017,18 @@ function produceSim(world)
     return res
 end
 
-w1 = produceSim(worldSet[1])
+# w1 = produceSim(worldSet[1])
 
 # world[:nGens] = world[:realGen]
 # worldSet = dict_list(world)
 ls =[]
-for cosm in worldSet
+for cosm in worldSet[1:10:end]
     cosm[:nGens] = cosm[:realGen]
+    cosm[:gain] = cosm[:ratio]/cosm[:stab]
+    cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
     resWorld = produceSim(cosm)
     push!(ls, resWorld)
-    safesave(joinpath("..", "data", savename(world, "bson")), resWorld)
+    save(joinpath("..", "data", savename(world, "bson")), resWorld)
 end
 
 # world = produceSim(worldSet[1])
