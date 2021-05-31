@@ -7,28 +7,32 @@ using DrWatson
 
 
 world = Dict{Symbol, Any}(
-    :force => [0.5, 0.0],
+    :force => [0.1],
     :nGens => 1,
-    :realGen =>  [@onlyif(:force==0.5, 1000), @onlyif(:force==0, 10)],
+    :realGen =>  [@onlyif(:force != 0.5, 1000), @onlyif(:force==0, 10)],
     :q => 5,
     :n => 3,
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
-    :stab => collect(2:4:20),
+    # :stab => collect(2:4:20),
+    # :ratio => vcat(0.1, collect(0.2:0.2:0.8), 0.9),
+    :stab => 20,
     :ratio => vcat(0.1, collect(0.2:0.2:0.8), 0.9),
     :basem => 0.1,
     :k => 0.1,
     :b => 0.3,
     # :d => collect(0:0.1:1),    
-    :d => [0.1, 0.5, 0.9, 
-        @onlyif(:epsilon in (1, 5, 10), 
-        [0.2, 0.3, 0.4, 0.6, 0.7, 0.8])...
-    ],
-    # :epsilon => [1, 5, 10],
-    :epsilon => [1, 5, 10, 
-        @onlyif(:d in (0.2, 0.5, 0.9), 
-        [2, 3, 4, 6, 7, 8, 9])...
-    ],
+    # :d => [0.1, 0.5, 0.9, 
+    #     @onlyif(:epsilon in (1, 5, 10), 
+    #     [0.2, 0.3, 0.4, 0.6, 0.7, 0.8])...
+    # ],
+    # # :epsilon => [1, 5, 10],
+    # :epsilon => [1, 5, 10, 
+    #     @onlyif(:d in (0.1, 0.5, 0.9), 
+    #     [2, 3, 4, 6, 7, 8, 9])...
+    # ],
+    :d => 0.5,
+    :epsilon => 5,
     :multX => 0.1,
     :multY => 0.1,
     :temp => Array{Any, 2}
@@ -548,7 +552,7 @@ function makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
     Wn5, Wd5 = addFights(copy(Wn4), copy(Wd4), W, F, C, Cf, Cl, epsilon, world)
     Wn6, Wd6 = addDistantBirth(copy(Wn5), copy(Wd5), W, F, Pf, world)
     wSys = Wn6./Wd6.-W
-    wSys[1,2] = 1-W[1,2]
+    wSys[5,3] = 1-W[5,3]
     for q in 1:world[:q]
         wSys[q, 1] = W[q,1]
     end
@@ -776,7 +780,7 @@ function genSolF2(fFun, world)
 end
 
 function genSolW(wFun, world)
-    u = ones(world[:q], world[:n])
+    u = ones(world[:q], world[:n]).*0.5
     u[:, 1] .= 0.0
     return nlsolve(wFun, u)
 end
@@ -1028,26 +1032,41 @@ function produceSim(world)
 end
 
 @time begin
-    println("TASK: ", ENV["SLURM_ARRAY_TASK_ID"])
+    # println("TASK: ", ENV["SLURM_ARRAY_TASK_ID"])
 
-    index = parse(Int64, ENV["SLURM_ARRAY_TASK_ID"])
+    # index = parse(Int64, ENV["SLURM_ARRAY_TASK_ID"])
     worldSet = dict_list(world)
+    print(length(worldSet))
     # worldSet = dict_list.(dict_list(world))
     # worldSet = collect(Iterators.flatten(worldSet))
-    cosm = worldSet[index]
-    cosm[:gain] = cosm[:ratio]/cosm[:stab]
-    cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
+    ls = []
+    for cosm in worldSet
+        # cosm = worldSet[i]
+        cosm[:gain] = cosm[:ratio]/cosm[:stab]
+        cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
 
-    w1 = produceSim(cosm)
+        # w1 = produceSim(cosm)
 
-    cosm[:nGens] = cosm[:realGen]
-    # worldSet = dict_list(world)
+        cosm[:nGens] = cosm[:realGen]
+        # worldSet = dict_list(world)
 
-    # for cosm in worldSet
-    resWorld = produceSim(cosm)
-    save(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), resWorld)
+        # for cosm in worldSet
+        resWorld = produceSim(cosm)
+        push!(ls, resWorld)
+    end
+    # save(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), resWorld)
 end
 
+for testDat in ls 
+    testDat[:relW] = testDat[:tW]./mean(testDat[:tW]) 
+    testDat[:qVal] = mean(mapslices(diff, testDat[:relW], dims=1))
+    testDat[:qVal1] = mean(diff(testDat[:relW][:, 2]))
+    testDat[:qVal2] = mean(diff(testDat[:relW][:, 3]))
+end
+
+println([x[:qVal] for x in ls])
+println([x[:qVal1] for x in ls])
+println([x[:qVal2] for x in ls])
 # world = produceSim(worldSet[1])
 
 # g = [0.2 -0.3 -0.11; -0.5 0.7 0.13]
