@@ -39,7 +39,7 @@ classifyStability <- Vectorize(function(stability){
 
 dat <- read_csv('../results/second.csv') %>% 
   distinct(force, d, epsilon, gain, loss, .keep_all=TRUE) %>%
-  filter(collapsed==FALSE) %>%
+  filter(popSize>0) %>%
   mutate(gain_loss = paste(gain, loss, sep="_"),
          envRatio = gain/(gain+loss),
          stability = 1/(gain+loss)) %>%
@@ -76,7 +76,7 @@ plotDat <- dat %>%
 plotDat0 <- filter(plotDat, force==0)
 plotDat5 <- filter(plotDat, force==0.5)
 
-ggplot(filter(plotDat5, epsilon%in%c(1,10), d>0.1)) +
+ggplot(filter(plotDat5, epsilon%in%c(1, 10), d>0.1)) +
   facet_grid(~epsilon, scales="free") +
   geom_path(aes(avgR, gY,  color=treatStab, linetype=treatRat), size=1) +
   my_theme
@@ -137,8 +137,8 @@ plotDat <- dat %>%
     avgMort = mean(avgMort),
     avgFit = geomMean(meanFit),
     qVal = mean(qVal),
-    fit1 = geomMean(fit1),
-    fit2 = geomMean(fit2),
+    fit1 = mean(fit1),
+    fit2 = mean(fit2),
     qVal1 = mean(diff(fit1)),
     qVal2 = mean(diff(fit2))
   ) %>%
@@ -191,6 +191,13 @@ ggplot(dtemp) +
   geom_point(aes(ratio, gX,  color=as.factor(treatStab)), size=3) +
   my_theme
 ggsave("../graphs/10_X_stab.png")
+
+ggplot(filter(plotDat5)) +
+  geom_path(aes(stab, qVal,  color=as.factor(ratio)), size=1) +
+  my_theme
+ggplot(filter(plotDat5)) +
+  geom_path(aes(stab, fit2,  color=as.factor(ratio)), size=1) +
+  my_theme
 
 ggplot(filter(plotDat5)) +
   geom_path(aes(stab, qVal,  color=as.factor(ratio)), size=1) +

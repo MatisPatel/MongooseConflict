@@ -5,6 +5,8 @@
 #SBATCH -J mong_julia
 #! Account name for group, use SL2 for paying queue:
 #SBATCH -A JOHNSTONE-SL3-CPU
+# which cores to run on
+#SBATCH -p skylake,cclake
 #! Output filename:
 #! %A means slurm job ID and %a means array index
 #SBATCH --output=test_mong_%A_%a.out
@@ -22,10 +24,10 @@
 #! Estimated maximum memory needed (job is force-stopped if exceeded):
 #! RAM is allocated in ~5980mb blocks, you are charged per block used,
 #! and unused fractions of blocks will not be usable by others.
-#SBATCH --mem=5980mb
+#SBATCH --mem=3420mb
 #! Submit a job array with index values between 0 and 31
 #! NOTE: This must be a range, not a single number (i.e. specifying '32' here would only run one job, with index 32)
-#SBATCH --array=1-2881
+#SBATCH --array=1-2461
 
 #! This is the partition name.
 #SBATCH -p skylake

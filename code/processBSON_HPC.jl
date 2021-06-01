@@ -46,9 +46,9 @@ for i in 1:length(files)
 
     testDat[:avgMort] = mean(mortFun.(nArray, testDat[:tX][:,2:end], testDat[:tY][:,2:end], testDat[:basem], testDat[:multX], testDat[:multY]))
     testDat[:relW] = testDat[:tW]./mean(testDat[:tW])
-    testDat[:meanFit] = mean(testDat[:relW][:, 2:end])
-    testDat[:fit1] = mean(testDat[:relW][:, 2])
-    testDat[:fit2] = mean(testDat[:relW][:, 3])
+    testDat[:meanFit] = geomean(testDat[:relW][:, 2:end])
+    testDat[:fit1] = geomean(testDat[:relW][:, 2])
+    testDat[:fit2] = geomean(testDat[:relW][:, 3])
     testDat[:qVal] = mean(mapslices(diff, testDat[:relW], dims=1))
 
     testDat[:totFreq] = sum(testDat[:tF])
