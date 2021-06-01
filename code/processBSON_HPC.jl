@@ -49,7 +49,7 @@ for i in 1:length(files)
     testDat[:meanFit] = geomean(testDat[:relW][:, 2:end])
     testDat[:fit1] = geomean(testDat[:relW][:, 2])
     testDat[:fit2] = geomean(testDat[:relW][:, 3])
-    testDat[:qVal] = mean(mapslices(diff, testDat[:relW], dims=1))
+    testDat[:qVal] = mean(mapslices(diff, testDat[:tW], dims=1))
 
     testDat[:totFreq] = sum(testDat[:tF])
     testDat[:popSize] = sum(testDat[:tF][:, 2:end])
