@@ -50,7 +50,7 @@ dat <- read_csv('../results/second.csv') %>%
 
 
 plotDat <- dat %>% 
-  filter(d>0, epsilon<20, force==0|(force==0.5&err<1E-7)) %>%
+  filter(force==0|(force!=0.5&err<1E-7)) %>%
   group_by(d, epsilon, force, treatStab, treatRat) %>%
   summarise(
     gX = mean(groupAvgX),
@@ -74,9 +74,9 @@ plotDat <- dat %>%
   ungroup()
 
 plotDat0 <- filter(plotDat, force==0)
-plotDat5 <- filter(plotDat, force==0.5)
+plotDat5 <- filter(plotDat, force!=0)
 
-ggplot(filter(plotDat5, epsilon%in%c(1, 10), d>0.1)) +
+ggplot(filter(plotDat5, epsilon%in%c(1, 5, 10), d>0.1)) +
   facet_grid(~epsilon, scales="free") +
   geom_path(aes(avgR, gY,  color=treatStab, linetype=treatRat), size=1) +
   my_theme
