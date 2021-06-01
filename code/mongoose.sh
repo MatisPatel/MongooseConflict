@@ -5,8 +5,6 @@
 #SBATCH -J mong_julia
 #! Account name for group, use SL2 for paying queue:
 #SBATCH -A JOHNSTONE-SL3-CPU
-# which cores to run on
-#SBATCH -p skylake,cclake
 #! Output filename:
 #! %A means slurm job ID and %a means array index
 #SBATCH --output=test_mong_%A_%a.out
@@ -30,7 +28,7 @@
 #SBATCH --array=1-2461
 
 #! This is the partition name.
-#SBATCH -p skylake
+#SBATCH -p skylake,cclake
 
 #! mail alert at start, end and abortion of execution
 #! emails will default to going to your email address
