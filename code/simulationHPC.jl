@@ -7,7 +7,7 @@ using DrWatson
 
 
 world = Dict{Symbol, Any}(
-    :force => [0.25, 0],
+    :force => [0.01, 0],
     :nGens => 1,
     :realGen =>  [@onlyif(:force != 0, 1000), @onlyif(:force==0, 10)],
     :q => 5,
@@ -16,7 +16,7 @@ world = Dict{Symbol, Any}(
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
     :stab => collect(2:4:20),
     :ratio => vcat(0.1, collect(0.2:0.2:0.8), 0.9),
-    :basem => 0.05,
+    :basem => 0.1,
     :k => 0.1,
     :b => 0.3,
     # :d => collect(0.1:0.1:0.9),    
@@ -29,8 +29,8 @@ world = Dict{Symbol, Any}(
         @onlyif(:d in (0.1, 0.5, 0.9), 
         [2, 3, 4, 6, 7, 8, 9])...
     ],
-    :multX => 0.05,
-    :multY => 0.05,
+    :multX => 0.1,
+    :multY => 0.1,
     :temp => Array{Any, 2}
 )
 

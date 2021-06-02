@@ -17,6 +17,12 @@ git-tree-sha1 = "f1b523983a58802c4695851926203b36e28f09db"
 uuid = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 version = "3.3.0"
 
+[[Agents]]
+deps = ["DataFrames", "Distributed", "LightGraphs", "LinearAlgebra", "OpenStreetMapX", "Random", "StatsBase"]
+git-tree-sha1 = "3f92f44a7cea93b758da662707d59d670193ba3f"
+uuid = "46ada45e-f475-11e8-01d0-f70cc89e6671"
+version = "4.0.1"
+
 [[ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
 
@@ -563,6 +569,12 @@ uuid = "b27032c2-a3e7-50c8-80cd-2d36dbcbfd21"
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll", "Zlib_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
 
+[[LibExpat]]
+deps = ["Expat_jll", "Pkg"]
+git-tree-sha1 = "27dc51f94ceb107fd53b367431a638b430e01e81"
+uuid = "522f3ed2-3f36-55e3-b6df-e94fee9b0c07"
+version = "0.6.1"
+
 [[LibGit2]]
 deps = ["Base64", "NetworkOptions", "Printf", "SHA"]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
@@ -774,6 +786,12 @@ deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Pk
 git-tree-sha1 = "b9b8b8ed236998f91143938a760c2112dceeb2b4"
 uuid = "efe28fd5-8261-553b-a9e1-b2916fc3738e"
 version = "0.5.4+0"
+
+[[OpenStreetMapX]]
+deps = ["DataStructures", "HTTP", "JSON", "LibExpat", "LightGraphs", "Random", "Serialization", "SparseArrays", "Statistics"]
+git-tree-sha1 = "71fe65bce368557f5b94079ac709a9c08f46f720"
+uuid = "86cd37e6-c0ff-550b-95fe-21d72c8d4fc9"
+version = "0.2.3"
 
 [[Opus_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1231,7 +1249,7 @@ uuid = "02c8fc9c-b97f-50b9-bbe4-9be30ff0a78a"
 version = "2.9.11+0"
 
 [[XSLT_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Pkg", "XML2_jll"]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Libgpg_error_jll", "Pkg", "XML2_jll"]
 git-tree-sha1 = "2b3eac39df218762d2d005702d601cd44c997497"
 uuid = "aed1982a-8fda-507f-9586-7b0439959a61"
 version = "1.1.33+4"

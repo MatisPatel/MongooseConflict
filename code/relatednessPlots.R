@@ -39,7 +39,7 @@ classifyStability <- Vectorize(function(stability){
 
 dat <- read_csv('../results/second.csv') %>% 
   distinct(force, d, epsilon, gain, loss, .keep_all=TRUE) %>%
-  filter(popSize>0) %>%
+  filter(popSize>0, basem==0.05) %>%
   mutate(gain_loss = paste(gain, loss, sep="_"),
          envRatio = gain/(gain+loss),
          stability = 1/(gain+loss)) %>%
@@ -50,7 +50,7 @@ dat <- read_csv('../results/second.csv') %>%
 
 
 plotDat <- dat %>% 
-  filter(force==0|(force!=0.5&err<1E-7)) %>%
+  filter(force==0|(force!=0&err<1E-7)) %>%
   group_by(d, epsilon, force, treatStab, treatRat) %>%
   summarise(
     gX = mean(groupAvgX),

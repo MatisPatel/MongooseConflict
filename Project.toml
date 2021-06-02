@@ -1,4 +1,5 @@
 [deps]
+Agents = "46ada45e-f475-11e8-01d0-f70cc89e6671"
 AstroIO = "c85a633c-0c3f-44a2-bffe-7f9d0681b3e7"
 BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"

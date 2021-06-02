@@ -7,15 +7,15 @@ using DrWatson
 
 
 world = Dict{Symbol, Any}(
-    :force => [0.5, 0],
+    :force => [0.01, 0],
     :nGens => 1,
-    :realGen =>  [@onlyif(:force==0.5, 1000), @onlyif(:force==0, 10)],
+    :realGen =>  [@onlyif(:force != 0, 1000), @onlyif(:force==0, 10)],
     :q => 5,
     :n => 3,
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
-    :stab => collect(2:2:20),
-    :ratio => collect(0.1:0.1:0.9),
+    :stab => 20,
+    :ratio => 0.2,
     :basem => 0.1,
     :k => 0.1,
     :b => 0.3,
@@ -1022,7 +1022,7 @@ end
 # world[:nGens] = world[:realGen]
 # worldSet = dict_list(world)
 ls =[]
-for cosm in worldSet[1:10:end]
+for cosm in worldSet
     cosm[:nGens] = cosm[:realGen]
     cosm[:gain] = cosm[:ratio]/cosm[:stab]
     cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
