@@ -38,8 +38,8 @@ classifyStability <- Vectorize(function(stability){
 
 
 dat <- read_csv('../results/second.csv') %>% 
+  filter(basem==0.1) %>%
   distinct(force, d, epsilon, gain, loss, .keep_all=TRUE) %>%
-  filter(popSize>0, basem==0.05) %>%
   mutate(gain_loss = paste(gain, loss, sep="_"),
          envRatio = gain/(gain+loss),
          stability = 1/(gain+loss)) %>%
@@ -74,16 +74,16 @@ plotDat <- dat %>%
   ungroup()
 
 plotDat0 <- filter(plotDat, force==0)
-plotDat5 <- filter(plotDat, force!=0)
+plotDat5 <- filter(plotDat, force==0.01)
 
-ggplot(filter(plotDat5, epsilon%in%c(1, 5, 10), d>0.1)) +
+ggplot(filter(plotDat5, epsilon%in%c(1, 5, 10), d>=0.1)) +
   facet_grid(~epsilon, scales="free") +
   geom_path(aes(avgR, gY,  color=treatStab, linetype=treatRat), size=1) +
   my_theme
 ggsave("../graphs/1_Y_rel_byEpsilon.png")
 
 
-ggplot(filter(plotDat5, epsilon%in%c(1,10), d>0.1)) +
+ggplot(filter(plotDat5, epsilon%in%c(1,10), d>=0.1)) +
   facet_grid(~epsilon, scales="free") +
   geom_path(aes(avgR, gX,  color=treatStab, linetype=treatRat), size=1) +
   my_theme
@@ -101,19 +101,19 @@ ggplot(filter(plotDat5,  epsilon%in%c(1,5,10), d>0.1)) +
   geom_path(aes(avgR, gY,  color=treatStab, linetype=treatRat), size=1) +
   my_theme
 
-ggplot(filter(plotDat5,  d%in%c(0.2, 0.5, 0.9))) +
+ggplot(filter(plotDat5,  d%in%c(0.1, 0.5, 0.9))) +
   facet_grid(~d, scales="free") +
   geom_path(aes(epsilon, gX,  color=treatStab, linetype=treatRat), size=1) +
   geom_path(aes(epsilon, gY,  color=treatStab, linetype=treatRat), size=1) +
   my_theme
 
-ggplot(filter(plotDat5,  d%in%c(0.2, 0.9))) +
+ggplot(filter(plotDat5,  d%in%c(0.1, 0.9))) +
   facet_grid(~d, scales="free") +
-  geom_path(aes(epsilon, gY,  color=treatStab, linetype=treatRat), size=1) +
+  geom_point(aes(epsilon, gY,  color=treatStab, linetype=treatRat), size=1) +
   my_theme
 ggsave("../graphs/4_Y_epsilon_byD.png")
 
-ggplot(filter(plotDat5,  d%in%c(0.2, 0.9))) +
+ggplot(filter(plotDat5,  d%in%c(0.5, 0.9))) +
   facet_grid(~d, scales="free") +
   geom_path(aes(epsilon, gX,  color=treatStab, linetype=treatRat), size=1) +
   my_theme
