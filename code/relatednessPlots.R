@@ -50,7 +50,7 @@ dat <- read_csv('../results/second.csv') %>%
 
 
 plotDat <- dat %>% 
-  filter(force==0|(force!=0&err<1E-7)) %>%
+  filter(force==0|(force!=0)) %>%
   group_by(d, epsilon, force, treatStab, treatRat) %>%
   summarise(
     gX = mean(groupAvgX),
