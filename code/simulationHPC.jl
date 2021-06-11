@@ -14,8 +14,9 @@ world = Dict{Symbol, Any}(
     :n => 3,
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
-    :stab => collect(2:4:20),
-    :ratio => vcat(0.1, collect(0.2:0.2:0.8), 0.9),
+    :stab => collect(2:2:20),
+    :ratio => collect(0.1:0.1:0.9)
+    # :ratio => vcat(0.1, collect(0.2:0.2:0.8), 0.9),
     :basem => 0.1,
     :k => 0.1,
     :b => 0.3,
@@ -988,7 +989,7 @@ function runSim(world)
 
     # create W system 
     wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
-    wSys[2,1] = 1-W[2,1]
+    wSys[1,2] = 1-W[1,2]
     for q in 1:world[:q]
         wSys[q, 1] = W[q,1]
     end

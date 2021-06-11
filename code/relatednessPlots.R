@@ -37,7 +37,7 @@ classifyStability <- Vectorize(function(stability){
 })
 
 
-dat <- read_csv('../results/second.csv') %>% 
+dat <- read_csv('../results/06_11_0.01force.csv') %>% 
   filter(basem==0.1) %>%
   distinct(force, d, epsilon, gain, loss, .keep_all=TRUE) %>%
   mutate(gain_loss = paste(gain, loss, sep="_"),
@@ -50,21 +50,21 @@ dat <- read_csv('../results/second.csv') %>%
 
 
 plotDat <- dat %>% 
-  filter(force==0|(force!=0)) %>%
+  filter(force==0|(force!=0&err<1E-6)) %>%
   group_by(d, epsilon, force, treatStab, treatRat) %>%
   summarise(
-    gX = mean(groupAvgX),
-    gY = mean(groupAvgY),
-    AgY = mean(AgroupAvgY),
-    SgY = mean(SgroupAvgY),
-    avgR = mean(avgR),
-    avgMort = mean(avgMort),
-    avgFit = geomMean(meanFit),
-    qVal = mean(qVal),
-    fit1 = geomMean(fit1),
-    fit2 = geomMean(fit2),
-    qVal1 = mean(diff(fit1)),
-    qVal2 = mean(diff(fit2))
+    gX = mean(groupAvgX, na.rm=T),
+    gY = mean(groupAvgY, na.rm=T),
+    AgY = mean(AgroupAvgY, na.rm=T),
+    SgY = mean(SgroupAvgY, na.rm=T),
+    avgR = mean(avgR, na.rm=T),
+    avgMort = mean(avgMort, na.rm=T),
+    avgFit = mean(meanFit, na.rm=T),
+    qVal = mean(qVal, na.rm=T),
+    fit1 = mean(fit1, na.rm=T),
+    fit2 = mean(fit2, na.rm=T),
+    qVal1 = mean(diff(fit1, na.rm=T)),
+    qVal2 = mean(diff(fit2, na.rm=T))
   ) %>%
   mutate(
     investGY = gY/(gX+gY),
