@@ -7,7 +7,7 @@
 #SBATCH -A JOHNSTONE-SL3-CPU
 #! Output filename:
 #! %A means slurm job ID and %a means array index
-#SBATCH --output=test_mong_%A_%a.out
+#SBATCH --output=mong_%A_%a.out
 #! Errors filename:
 #SBATCH --error=mong_julia_%A_%a.err
 
@@ -18,14 +18,14 @@
 #! How many many cores will be allocated per task? (for single core jobs always leave this at 1)
 #SBATCH --cpus-per-task=1
 #! Estimated runtime: hh:mm:ss (job is force-stopped after if exceeded):
-#SBATCH --time=00:05:00
+#SBATCH --time=00:15:00
 #! Estimated maximum memory needed (job is force-stopped if exceeded):
 #! RAM is allocated in ~5980mb blocks, you are charged per block used,
 #! and unused fractions of blocks will not be usable by others.
 #SBATCH --mem=3420mb
 #! Submit a job array with index values between 0 and 31
 #! NOTE: This must be a range, not a single number (i.e. specifying '32' here would only run one job, with index 32)
-#SBATCH --array=1-8640
+#SBATCH --array=1-9504
 
 #! This is the partition name.
 #SBATCH -p skylake,cclake

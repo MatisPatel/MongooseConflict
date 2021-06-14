@@ -31,8 +31,8 @@ world = Dict{Symbol, Any}(
 world[:size] = world[:n]*world[:q]
 worldSet = dict_list(world) 
 
-for i in 1:length(worldSet[1:10])
+for i in 1:length(worldSet)
     save(joinpath("tempDicts", string(i, ".bson")), worldSet[i])
 end 
 
-println()
+println(length(worldSet))
