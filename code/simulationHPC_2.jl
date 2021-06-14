@@ -5,40 +5,7 @@ using DrWatson
 
 @variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
 
-
-world = Dict{Symbol, Any}(
-    :force => [0.03, 0],
-    :nGens => 1,
-    :realGen =>  [@onlyif(:force != 0, 5000), @onlyif(:force==0, 10)],
-    :q => 5,
-    :n => 3,
-    # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
-    # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
-    :stab => collect(5:1:15),
-    :ratio => collect(0.1:0.1:0.9),
-    # :ratio => vcat(0.1, collect(0.2:0.2:0.8), 0.9),
-    :basem => 0.1,
-    :k => 0.1,
-    :b => 0.3,
-    # :d => collect(0.1:0.1:0.9),    
-    :d => [0.1, 0.5, 0.9, 
-        @onlyif(:epsilon in (1, 5, 10), 
-        [0.2, 0.3, 0.4, 0.6, 0.7, 0.8])...
-    ],
-    # :epsilon => collect(1:1:10),
-    :epsilon => [1, 5, 10, 
-        @onlyif(:d in (0.1, 0.5, 0.9), 
-        [2, 3, 4, 6, 7, 8, 9])...
-    ],
-    :multX => 0.1,
-    :multY => 0.1,
-    :temp => Array{Any, 2}
-)
-
-world[:size] = world[:n]*world[:q]
-# worldSet = dict_list(world)
-# cosm = worldSet[30]
-# w1 = produceSim(cosm)
+world = load(joinpath("..", "tempDicts", string(ENV["SLURM_ARRAY_TASK_ID"], ".bson")))
 
 @variables begin 
     F[1:world[:q], 1:world[:n]]
@@ -1031,11 +998,11 @@ end
 @time begin
     println("TASK: ", ENV["SLURM_ARRAY_TASK_ID"])
 
-    index = parse(Int64, ENV["SLURM_ARRAY_TASK_ID"])
-    worldSet = dict_list(world)
+    # index = parse(Int64, ENV["SLURM_ARRAY_TASK_ID"])
+    # worldSet = dict_list(world)
     # worldSet = dict_list.(dict_list(world))
     # worldSet = collect(Iterators.flatten(worldSet))
-    cosm = worldSet[index]
+    cosm = world
     cosm[:gain] = cosm[:ratio]/cosm[:stab]
     cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
 

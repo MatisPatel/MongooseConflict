@@ -7,15 +7,15 @@ using DrWatson
 
 
 world = Dict{Symbol, Any}(
-    :force => [0.01],
+    :force => [0.1],
     :nGens => 1,
     :realGen =>  [@onlyif(:force != 0, 1000), @onlyif(:force==0, 10)],
     :q => 5,
     :n => 3,
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
-    :stab => 10,
-    :ratio => 0.5,
+    :stab => 1,
+    :ratio => 0.2,
     :basem => 0.1,
     :k => 0.1,
     :b => 0.3,
@@ -1006,21 +1006,21 @@ function runSim(world)
     # create W system 
     wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
 
-    Wavg = copy(W) 
-    for q in 1:world[:q]
-        for n in 1:world[:n]
-            Wavg[q,n] = (world[:size]-world[:q]) - (sum(W) - W[q,n])
-        end
-    end
+    # Wavg = copy(W) 
+    # for q in 1:world[:q]
+    #     for n in 1:world[:n]
+    #         Wavg[q,n] = (world[:size]-world[:q]) - (sum(W) - W[q,n])
+    #     end
+    # end
 
-    wSys = substitute.(wSys, matSub(W.=>Wavg))
+    # wSys = substitute.(wSys, matSub(W.=>Wavg))
 
-    # wSys[5,2] = 2-W[5,2]
+    wSys[1,2] = 1-W[1,2]
     for q in 1:world[:q]
         wSys[q, 1] = W[q,1]
     end
 
-    wSys = substitute.(wSys, matSub(W[:,1].=>0.0))
+    # wSys = substitute.(wSys, matSub(W[:,1].=>0.0))
 
     wSysSelec = Wn./Wd
     funW = ModelingToolkit.build_function(
