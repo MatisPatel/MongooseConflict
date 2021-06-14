@@ -7,15 +7,15 @@ using DrWatson
 
 
 world = Dict{Symbol, Any}(
-    :force => [0.01, 0],
+    :force => [0.01],
     :nGens => 1,
     :realGen =>  [@onlyif(:force != 0, 1000), @onlyif(:force==0, 10)],
     :q => 5,
     :n => 3,
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
-    :stab => 20,
-    :ratio => 0.2,
+    :stab => 10,
+    :ratio => 0.5,
     :basem => 0.1,
     :k => 0.1,
     :b => 0.3,
@@ -539,10 +539,10 @@ function makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
     Wn5, Wd5 = addFights(copy(Wn4), copy(Wd4), W, F, C, Cf, Cl, epsilon, world)
     Wn6, Wd6 = addDistantBirth(copy(Wn5), copy(Wd5), W, F, Pf, world)
     wSys = Wn6./Wd6.-W
-    wSys[1,2] = 1-W[1,2]
-    for q in 1:world[:q]
-        wSys[q, 1] = W[q,1]
-    end
+    # wSys[1,2] = 1-W[1,2]
+    # for q in 1:world[:q]
+    #     wSys[q, 1] = W[q,1]
+    # end
     return wSys, Wn6, Wd6 
 end
 
@@ -767,7 +767,7 @@ function genSolF2(fFun, world)
 end
 
 function genSolW(wFun, world)
-    u = ones(world[:q], world[:n])
+    u = ones(world[:q], world[:n]).*2
     u[:, 1] .= 0.0
     return nlsolve(wFun, u)
 end
@@ -913,6 +913,32 @@ function step(world, callFun, callFunW, callFunR,
     world[:gradX] = Symbolics.value.(gradX)
     world[:gradY] = Symbolics.value.(gradY)
 
+    # if !(haskey(world, :gradXLast))
+    #     world[:gradXLast] = world[:gradX]
+    #     world[:gradYLast] = world[:gradY]
+    #     world[:gradXCurr] = world[:gradX]
+    #     world[:gradYCurr] = world[:gradY]
+    # end 
+
+    # world[:gradXLast] = world[:gradYCurr]
+    # world[:gradYLast] = world[:gradYCurr]
+    # world[:gradXCurr] = world[:gradX] .+ world[:momentum] .* world[:gradXLast]
+    # world[:gradYCurr] = world[:gradY] .+ world[:momentum] .* world[:gradYLast]
+
+    # world[:tX] = clamp.(
+    #     world[:tX] .+ world[:force]*clamp.(world[:gradXCurr], -1, 1),
+    #     # clamp.(world[:force]*world[:gradX], -world[:force], world[:force]), 
+    #     0,
+    #     1
+    # )
+
+    # world[:tY] = clamp.(
+    #     world[:tY] .+ world[:force]*clamp.(world[:gradYCurr], -1, 1),
+    #     # clamp.(world[:force]*world[:gradY], -world[:force], world[:force]), 
+    #     0,
+    #     1
+    # )
+
     world[:tX] = clamp.(
         world[:tX] .+ world[:force]*clamp.(world[:gradX], -1, 1),
         # clamp.(world[:force]*world[:gradX], -world[:force], world[:force]), 
@@ -979,10 +1005,23 @@ function runSim(world)
 
     # create W system 
     wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
-    wSys[2,1] = 1-W[2,1]
+
+    Wavg = copy(W) 
+    for q in 1:world[:q]
+        for n in 1:world[:n]
+            Wavg[q,n] = (world[:size]-world[:q]) - (sum(W) - W[q,n])
+        end
+    end
+
+    wSys = substitute.(wSys, matSub(W.=>Wavg))
+
+    # wSys[5,2] = 2-W[5,2]
     for q in 1:world[:q]
         wSys[q, 1] = W[q,1]
     end
+
+    wSys = substitute.(wSys, matSub(W[:,1].=>0.0))
+
     wSysSelec = Wn./Wd
     funW = ModelingToolkit.build_function(
         wSys, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
@@ -1026,7 +1065,7 @@ for cosm in worldSet
     cosm[:nGens] = cosm[:realGen]
     cosm[:gain] = cosm[:ratio]/cosm[:stab]
     cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
-    resWorld = produceSim(cosm)
+    global resWorld = produceSim(cosm)
     push!(ls, resWorld)
     save(joinpath("..", "data", savename(world, "bson")), resWorld)
 end
