@@ -82,4 +82,4 @@ end
 
 # make CSV 
 df = collect_results(resdir)
-CSV.write(joinpath(resdir, ARGS[1]), df)
+CSV.write(joinpath(resdir, "Data1Hr.csv"), df)
