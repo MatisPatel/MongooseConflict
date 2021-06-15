@@ -5,7 +5,7 @@ using DrWatson
 
 @variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
 
-world = load(joinpath("..", "tempDicts", string(ENV["SLURM_ARRAY_TASK_ID"], ".bson")))
+world = load(joinpath("tempDicts", string(ENV["SLURM_ARRAY_TASK_ID"], ".bson")))
 
 @variables begin 
     F[1:world[:q], 1:world[:n]]
