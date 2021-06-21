@@ -32,7 +32,7 @@ world = Dict{Symbol, Any}(
     ],
     :multX => 0.1,
     :multY => 0.1,
-    :fixed => [[1, 2], [3, 2]],
+    :fixed => [[1,2], [3,2]],
     :temp => Array{Any, 2}
 )
 
