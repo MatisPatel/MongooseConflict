@@ -1005,7 +1005,7 @@ end
     cosm = world
     cosm[:gain] = cosm[:ratio]/cosm[:stab]
     cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
-    cosm[:fix] = string(testDat[:fixed][1], testDat[:fixed][2])
+    cosm[:fix] = string(cosm[:fixed][1], cosm[:fixed][2])
 
     w1 = produceSim(cosm)
 
