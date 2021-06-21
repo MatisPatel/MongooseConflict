@@ -956,7 +956,7 @@ function runSim(world)
 
     # create W system 
     wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
-    wSys[1,2] = 1-W[1,2]
+    wSys[world[:fixed]...] = 1-W[world[:fixed]...]
     for q in 1:world[:q]
         wSys[q, 1] = W[q,1]
     end

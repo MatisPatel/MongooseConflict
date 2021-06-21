@@ -32,6 +32,7 @@ world = Dict{Symbol, Any}(
     ],
     :multX => 0.1,
     :multY => 0.1,
+    :fixed => [[1, 2], [3, 2]],
     :temp => Array{Any, 2}
 )
 
@@ -900,8 +901,8 @@ function step(world, callFun, callFunW, callFunR,
         world[:Pl],
         world[:P],
         world[:C],
-        world[:Cf],
         world[:Cl],
+        world[:Cf],
         world[:d], 
         world[:epsilon]
         )
@@ -989,10 +990,12 @@ function runSim(world)
 
     # create W system 
     wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
-    wSys[1,2] = 1-W[1,2]
+
+    wSys[world[:fixed]...] = 1-W[world[:fixed]...]
     for q in 1:world[:q]
         wSys[q, 1] = W[q,1]
     end
+
     wSysSelec = Wn./Wd
     funW = ModelingToolkit.build_function(
         wSys, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;

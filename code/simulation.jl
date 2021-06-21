@@ -14,15 +14,17 @@ world = Dict{Symbol, Any}(
     :n => 3,
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
-    :stab => 1,
-    :ratio => 0.2,
+    :stab => 10,
+    :ratio => 0.9,
     :basem => 0.1,
     :k => 0.1,
     :b => 0.3,
-    :d => 0.1,
-    :epsilon => 1,
+    :d => 0.5,
+    :epsilon => 5,
     :multX => 0.1,
     :multY => 0.1,
+    :fixed => [[3,2]],
+    # :fixed => [[1,2], [5,3], [3,3], [3,2]],
     :placeholder => [[], []]
 )
 
@@ -767,7 +769,7 @@ function genSolF2(fFun, world)
 end
 
 function genSolW(wFun, world)
-    u = ones(world[:q], world[:n]).*2
+    u = ones(world[:q], world[:n])
     u[:, 1] .= 0.0
     return nlsolve(wFun, u)
 end
@@ -890,20 +892,21 @@ function step(world, callFun, callFunW, callFunR,
         world[:Pl],
         world[:P],
         world[:C],
-        world[:Cf],
         world[:Cl],
+        world[:Cf],
         world[:d], 
         world[:epsilon]
         )
 
     
-    solF = genSolF2(fFun, world)
+    solF = genSolF(fFun, world)
     world[:tF] = solF.zero
 
-    solW = genSolW2(wFun, world)
+    solW = genSolW(wFun, world)
     world[:tW] = solW.zero
+    world[:solW] = solW
 
-    solR = genSolR2(rFun, world)
+    solR = genSolR(rFun, world)
     world[:tR] = solR.zero
 
     gradX = substitute.(grads[1], matSub(X.=>world[:tX], Y.=>world[:tY], F.=>world[:tF], W.=>world[:tW], R.=>world[:tR]))
@@ -1015,7 +1018,7 @@ function runSim(world)
 
     # wSys = substitute.(wSys, matSub(W.=>Wavg))
 
-    wSys[1,2] = 1-W[1,2]
+    wSys[world[:fixed]...] = 1-W[world[:fixed]...]
     for q in 1:world[:q]
         wSys[q, 1] = W[q,1]
     end
@@ -1065,10 +1068,51 @@ for cosm in worldSet
     cosm[:nGens] = cosm[:realGen]
     cosm[:gain] = cosm[:ratio]/cosm[:stab]
     cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
-    global resWorld = produceSim(cosm)
+    resWorld = produceSim(cosm)
     push!(ls, resWorld)
     save(joinpath("..", "data", savename(world, "bson")), resWorld)
 end
+
+using StatsBase
+testDat = ls[1]
+testDat[:relW] = testDat[:tW]./mean(testDat[:tW])
+testDat[:qVal] = mean(mapslices(diff, testDat[:relW], dims=1))
+testDat[:weightedFit] = testDat[:relW] .* testDat[:tF]
+testDat[:weightedQ] =  mean(mapslices(diff, testDat[:weightedFit], dims=1))
+
+# calc diffs in fitness for each term
+world = copy(testDat)
+totDiff = world[:tW][1,2] - world[:tW][2,2]
+Wn = makeFArray(world)
+Wd = makeFArray(world)
+# mortality 
+wSys, num, den = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
+
+function gradW(wSys, tW, world)
+    return res = substitute.(
+        substitute.(
+            substitute.(
+                wSys, d=>world[:d]
+            ), 
+            epsilon=>world[:epsilon]
+        ), 
+        matSub(
+            F.=>world[:tF], 
+            Cl.=>world[:Cl], 
+            Cf.=>world[:Cf],
+            C.=>world[:C],
+            Ml.=>world[:Ml],
+            Mf.=>world[:Mf],
+            M.=>world[:M],
+            Pl.=>world[:Pl],
+            Pf.=>world[:Pf],
+            P.=>world[:P],
+            W.=>tW
+        )
+    )
+end 
+
+Wn1, Wd1 = addMortality(copy(Wn), copy(Wd), W, Mf, Ml, world)
 
 # world = produceSim(worldSet[1])
 
