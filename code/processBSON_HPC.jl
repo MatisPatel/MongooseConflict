@@ -62,7 +62,7 @@ for i in 1:length(files)
 
         tempDict = Dict{Symbol, Any}(:ID=>i)
         for (key, val) in testDat
-            println(key)
+            # println(key)
             if !isa(val, Array)
                 tempDict[key] = val 
             else 
