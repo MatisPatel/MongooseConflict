@@ -5,30 +5,33 @@ using DrWatson
 
 @variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
 
+pprint(x) = round.(x, digits=4)
 
 world = Dict{Symbol, Any}(
-    :force => [0.1],
+    :force => [0.0],
     :nGens => 1,
-    :realGen =>  [@onlyif(:force != 0, 1000), @onlyif(:force==0, 10)],
-    :q => 5,
+    :realGen =>  [@onlyif(:force != 0, 1000), @onlyif(:force==0, 1)],
+    :q => 3,
     :n => 3,
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
-    :stab => 10,
-    :ratio => 0.9,
+    :stab => 5,
+    :ratio => 0.5,
     :basem => 0.1,
     :k => 0.1,
     :b => 0.3,
     :d => 0.5,
-    :epsilon => 5,
+    :epsilon => 0,
     :multX => 0.1,
     :multY => 0.1,
-    :fixed => [[3,2]],
+    :fixed => [[1,2]],
     # :fixed => [[1,2], [5,3], [3,3], [3,2]],
     :placeholder => [[], []]
 )
 
 world[:size] = world[:n]*world[:q]
+
+save("tempDicts/test.bson", world)
 
 worldSet = dict_list(world)
 
@@ -117,10 +120,10 @@ function addTrans(Fp, F, world)
     for q in 1:world[:q]
         for n in 1:world[:n]
             for newQ in 1:world[:q]
-                if q > newQ
+                if newQ == q-1
                     Fp[q, n] -= world[:loss] * F[q, n]
                     Fp[newQ, n] += world[:loss] * F[q, n]
-                elseif q < newQ 
+                elseif newQ == q+1 
                     Fp[q, n] -= world[:gain] * F[q, n]
                     Fp[newQ, n] += world[:gain] * F[q, n]
                 end
@@ -134,10 +137,10 @@ function addTrans(Wn, Wd, W, world)
     for q in 1:world[:q]
         for n in 2:world[:n]
             for newQ in 1:world[:q]
-                if q > newQ
+                if newQ == q-1
                     Wn[q, n] += world[:loss] * W[newQ, n]
                     Wd[q, n] += world[:loss]
-                elseif newQ > q 
+                elseif newQ == q+1  
                     Wn[q, n] += world[:gain] * W[newQ, n]
                     Wd[q, n] += world[:gain]
                 end
@@ -151,10 +154,10 @@ function addTransR(Rp, R, F, world)
     for q in 1:world[:q]
         for n in 2:world[:n]
             for newQ in 1:world[:q]
-                if q > newQ
+                if newQ == q-1
                     Rp[q, n] -= world[:loss] * F[q, n] * R[q, n]
                     Rp[newQ, n] += world[:loss] * F[q, n] * R[q, n]
-                elseif newQ > q 
+                elseif newQ == q+1 
                     Rp[q, n] -= world[:gain] * F[q, n] * R[q, n]
                     Rp[newQ, n] += world[:gain] * F[q, n] * R[q, n]
                 end
@@ -242,6 +245,20 @@ function addLocBirthR(Rp, R, F, P, d, world)
     return Rp
 end
 
+# function addDistantBirth(Wn, Wd, W, F, Pf, world)
+#     for q in 1:world[:q]
+#         for n in 2:world[:n]
+#             for qNew in 1:world[:q]
+#                 for nNew in 1:(world[:n]-1)
+#                     Wn[q, n] += d * Pf[q,n] * F[qNew, nNew] * (W[q,n] + W[qNew, nNew+1])
+#                     Wd[q, n] += d * Pf[q,n] * F[qNew, nNew]
+#                 end
+#             end
+#         end
+#     end
+#     return Wn, Wd
+# end
+
 function addDistantBirth(Wn, Wd, W, F, Pf, world)
     for q in 1:world[:q]
         for n in 2:world[:n]
@@ -255,6 +272,25 @@ function addDistantBirth(Wn, Wd, W, F, Pf, world)
     end
     return Wn, Wd
 end
+
+# function addDistantBirth(Wn, Wd, W, F, Pf, world)
+#     for q in 1:world[:q]
+#         for n in 2:world[:n]
+#             for qNew in 1:world[:q]
+#                 for nNew in 1:(world[:n])
+#                     if nNew != world[:n]
+#                         Wn[q, n] += d * Pf[q,n] * F[qNew, nNew] * (W[q,n] + W[qNew, nNew+1])
+#                         Wd[q, n] += d * Pf[q,n] * F[qNew, nNew]
+#                     else 
+#                         W[q, n] += d * Pf[q,n] * F[qNew, nNew]*W[q,n]
+#                         Wd[q,n] += d * Pf[q,n] * F[qNew, nNew]
+#                     end
+#                 end
+#             end
+#         end
+#     end
+#     return Wn, Wd
+# end
 
 function addImmigration(Fp, F, P, d, world)
     pbar = sum(F.*P * [n-1 for n in 1:world[:n]])
@@ -283,7 +319,7 @@ function addImmigrationR(Rp, R, F, P, d, world)
     for q in 1:world[:q]
         for n in 2:world[:n]-1
             newN = n
-            Rp[q, n] -= d * Pbar * F[q, n] * ((newN-2)/newN)*R[q, n]
+            Rp[q, n] -= d * Pbar * F[q, n] * R[q, n]
             Rp[q, n+1] += d * Pbar * F[q, n] * ((newN-2)/newN)*R[q, n]            
         end
     end
@@ -291,7 +327,7 @@ function addImmigrationR(Rp, R, F, P, d, world)
 end
 
 function victory(a, b)
-    return (a+0.000001)/(a+b+2*0.000001)
+    return (a+1E-8)*(a+b+2*1E-8)^-1.0
 end
 
 function addFights(Fp, F, C, epsilon, world)
@@ -299,6 +335,7 @@ function addFights(Fp, F, C, epsilon, world)
         for n in 1:world[:n]
             for qOpp in 1:world[:q]
                 for nOpp in 1:world[:n]
+                    if !(n==1 && nOpp==1)
                     # println("fight", F[q,n], " -> ", F[qOpp, nOpp])
                     # halved to not double count x->y and y->x
                     pEncounter  =  F[q, n] * F[qOpp, nOpp] * epsilon
@@ -336,9 +373,10 @@ function addFights(Fp, F, C, epsilon, world)
                         # q loses
                         Fp[q,n] -= fLoss
                         Fp[q-1,n] += fLoss
-                    # else
+                    else
                         # println("NO MATCH") 
                     end
+                end
                 end
             end
         end
@@ -347,49 +385,84 @@ function addFights(Fp, F, C, epsilon, world)
 end
 
 function addFights(Wn, Wd, W, F, C, Cf, Cl, epsilon, world)
-    for q in 1:world[:q]
+    for q in 1:world[:q]-1
         for n in 2:world[:n]
-            for qOpp in 1:world[:q]
+            for qOpp in 2:world[:q]
                 for nOpp in 1:world[:n]
-                    pEncounter = F[q, n] * F[qOpp, nOpp] * epsilon
-                    pVictory = victory(Cf[q, n] + (n-2) * Cl[q, n], (nOpp-1) * C[qOpp, nOpp])
+                    # println("fight", F[q,n], " -> ", F[qOpp, nOpp])
+                    pEncounter = F[qOpp, nOpp] * epsilon
+                    pVictory = victory(
+                        Cf[q, n] + (n-2) * Cl[q, n], 
+                        (nOpp-1) * C[qOpp, nOpp]
+                    )
+                    # pVictory = victory(0.1*(n-1), 0.1*(nOpp-1))
+                    # println(pVictory)
                     fWin = pEncounter * pVictory
                     fLoss = pEncounter * (1 - pVictory)
-                    if ((q == 1) & (qOpp > 1)) | ((qOpp == world[:q]) & (q < qOpp))
-                        # println("only win")
-                        Wn[q, n] += fWin * W[q + 1, n]
-                        Wd[q, n] += fWin
-                    # what if focal patch is non-zero but other patch is 0. Then can only lose
-                    elseif ((q > 1) & (qOpp == 1)) | ((q == world[:q]) & (qOpp < q))
-                        # println("only lose")
-                        Wn[q, n] += fLoss * W[q - 1, n]
-                        Wd[q, n] += fLoss
-                    # if equal richness and neither max not min then they can win or lose 
-                    elseif (q == qOpp) & (q > 1) & (q < world[:q])
-                        # println("both win or lose")
-                        # q wins
-                        Wn[q, n] += fWin * W[q + 1, n]
-                        Wd[q, n] += fWin 
-                        # q loses
-                        Wn[q, n] += fLoss * W[q - 1, n]
-                        Wd[q, n] += fLoss
-                    # or if diffrent and not min or max
-                    elseif (q != qOpp) & (q > 1) & (q < world[:q]) & (qOpp > 1) & (qOpp < world[:q])
-                        # println("both win or lose")
-                        Wn[q, n] += fWin * W[q + 1, n]
-                        Wd[q, n] += fWin 
-                        # q loses
-                        Wn[q, n] += fLoss * W[q - 1, n]
-                        Wd[q, n] += fLoss
-                    # else
-                        # println("NO MATCH") 
-                    end
-                end
-            end
-        end
+                    Wn[q, n] +=  fWin * W[q + 1, n]
+                    Wd[q, n] += fWin 
+                end 
+            end 
+        end 
     end
+    for q in 2:world[:q]
+        for n in 1:world[:n]
+            for qOpp in 1:world[:q]-1
+                for nOpp in 2:world[:n]
+                    # println("fight", F[q,n], " -> ", F[qOpp, nOpp])
+                    pEncounter = F[qOpp, nOpp] * epsilon
+                    pVictory = victory( 
+                    (nOpp-1) * C[qOpp, nOpp],
+                    Cf[q, n] + (n-2) * Cl[q, n]
+                    )
+                    # println(pVictory)
+                    # pVictory = victory(0.1*(nOpp-1), 0.1*(n-1))
+                    fWin = pEncounter * pVictory
+                    fLoss = pEncounter * (1 - pVictory)
+                    Wn[q, n] +=  fWin * W[q - 1, n]
+                    Wd[q, n] += fWin 
+                end 
+            end 
+        end 
+    end  
     return Wn, Wd
 end
+                    
+                    # if ((q == 1) & (qOpp > 1)) | ((qOpp == world[:q]) & (q < qOpp))
+                    #     # println("only win")
+                    #     Wn[q, n] += fWin * W[q + 1, n]
+                    #     Wd[q, n] += fWin
+                    # # what if focal patch is non-zero but other patch is 0. Then can only lose
+                    # elseif ((q > 1) & (qOpp == 1)) | ((q == world[:q]) & (qOpp < q))
+                    #     # println("only lose")
+                    #     Wn[q, n] += fLoss * W[q - 1, n]
+                    #     Wd[q, n] += fLoss
+                    # # if equal richness and neither max not min then they can win or lose 
+                    # elseif (q == qOpp) & (q > 1) & (q < world[:q])
+                    #     # println("both win or lose")
+                    #     # q wins
+                    #     Wn[q, n] += fWin * W[q + 1, n]
+                    #     Wd[q, n] += fWin 
+                    #     # q loses
+                    #     Wn[q, n] += fLoss * W[q - 1, n]
+                    #     Wd[q, n] += fLoss
+                    # # or if diffrent and not min or max
+                    # elseif (q != qOpp) & (q > 1) & (q < world[:q]) & (qOpp > 1) & (qOpp < world[:q])
+                    #     # println("both win or lose")
+                    #     Wn[q, n] += fWin * W[q + 1, n]
+                    #     Wd[q, n] += fWin 
+                    #     # q loses
+                    #     Wn[q, n] += fLoss * W[q - 1, n]
+                    #     Wd[q, n] += fLoss
+                    # else
+                    #     println("NO MATCH") 
+                    # end
+    #             end
+    #         end
+    #     end
+    # end
+#     return Wn, Wd
+# end
 
 function addFightsR(Rp, R, F, C, epsilon, world)
     for q in 1:world[:q]
@@ -449,6 +522,7 @@ function makeFsys(F, M, P, C, d, world)
     Fp2 = addMortality(copy(Fp1), F, M, world)
     Fp3 = addLocBirth(copy(Fp2), F, P, d, world)
     Fp4 = addImmigration(copy(Fp3), F, P, d, world)
+    # Fp5 =Fp4
     Fp5 = addFights(copy(Fp4), F, C, epsilon, world)
     Fp5[1,2] = 1 - sum(F)
     return Fp5
@@ -459,8 +533,13 @@ function mortFun2(n, xf, xl, yf, yl, world)
     return calc
 end 
 
+# function mortFun(n, xf, xl, yf, yl, world)
+#     calc = world[:basem] * exp(-1 * ((xl*(n-1) + xf))) + world[:multX]*xf^2 + world[:multY]*yf^2
+#     return calc
+# end 
+
 function mortFun(n, xf, xl, yf, yl, world)
-    calc = B * 2.718^(-1 * (n)*((xl*(n-1) + xf)/n)) + world[:multX]*xf^2 + world[:multY]*yf^2
+    calc = world[:basem] * exp(-1 * ((xl*(n-1) + xf))) + world[:multX]*xf^2 + world[:multY]*yf^2
     return calc
 end 
 
@@ -468,17 +547,20 @@ function makeFocalModelM(Xf, Xl, Yf, Yl, world)
     model = makeFArray(world)
     for q in 1:world[:q]
         for n in 2:world[:n]
-            model[q, n] = mortFun(n, Xf[q, n], Xl[q, n], Yf[q, n], Yl[q, n], world)
+            # model[q, n] = mortFun(n-1, Xf[q, n], Xl[q, n], Yf[q, n], Yl[q, n], world)
+            model[q, n] = world[:basem] * exp(-1 * ((Xl[q,n]*(n-2) + Xf[q,n]))) + world[:multX]*Xf[q,n]^2 + world[:multY]*Yf[q,n]^2
         end
     end
     return model
 end
+# makeFocalModelM(world[:tX], world[:tX], world[:tX], world[:tX], world)
 
 function makeLocalModelM(Xf, Xl, Yf, Yl, world)
     model = makeFArray(world)
     for q in 1:world[:q]
         for n in 2:world[:n]
-            model[q, n] = mortFun(n, Xl[q, n], Xf[q, n], Yl[q, n], Yf[q, n], world)
+            # model[q, n] = mortFun(n-1, Xl[q, n], Xf[q, n], Yl[q, n], Yf[q, n], world)
+            model[q, n] = world[:basem] * exp(-1 * ((Xl[q,n]*(n-2) + Xf[q,n]))) + world[:multX]*Xl[q,n]^2 + world[:multY]*Yl[q,n]^2
         end
     end
     return model
@@ -495,7 +577,7 @@ function makeFocalModelP(world)
         for n in 2:world[:n]
             model[q, n] = prodFun(q, n, world)
         end
-        model[q, 1] = 0.01
+        # model[q, 1] = 0.0
     end
     return model
 end
@@ -503,10 +585,10 @@ end
 function makeLocalModelP(world)
     model = makeFArray(world)
     for q in 1:world[:q]
-        for n in 3:world[:n]
+        for n in 2:world[:n]
             model[q, n] = prodFun(q, n, world)
         end
-        model[q, 1] = 0.01
+        # model[q, 1] = 0.0
     end
     return model
 end
@@ -524,7 +606,7 @@ end
 function makeLocalModelC(Yl, world)
     model = makeFArray(world)
     for q in 1:world[:q]
-        for n in 3:world[:n]
+        for n in 2:world[:n]
             model[q, n] = Yl[q, n]
         end
     end
@@ -540,7 +622,7 @@ function makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
     Wn4, Wd4 = addImmigration(copy(Wn3), copy(Wd3), W, F, P, d, world)
     Wn5, Wd5 = addFights(copy(Wn4), copy(Wd4), W, F, C, Cf, Cl, epsilon, world)
     Wn6, Wd6 = addDistantBirth(copy(Wn5), copy(Wd5), W, F, Pf, world)
-    wSys = Wn6./Wd6.-W
+    wSys = (Wn6./Wd6).-W
     # wSys[1,2] = 1-W[1,2]
     # for q in 1:world[:q]
     #     wSys[q, 1] = W[q,1]
@@ -756,6 +838,45 @@ function makeSelGrads(wSysSelec, modelM, modelP, modelC, modelMf, modelMl,
     return grads, directSel, indirectSel
 end
 
+function makeSelGrads2(wSysSelec, modelM, modelP, modelC, modelMf, modelMl, 
+    modelPf, modelPl, modelCf, modelCl, world)
+    wSysXY = substitute.(wSysSelec, matSub(
+        Mf.=>modelMf, 
+        Ml.=>modelMl,
+        P.=>modelP, 
+        Pf.=>modelPf, 
+        Pl.=>modelPl,
+        C.=>modelC, 
+        Cf.=>modelCf, 
+        Cl.=>modelCl, 
+        ))
+    wDiffXf = Symbolics.derivative.(wSysXY, Xf)
+    wDiffXl = Symbolics.derivative.(wSysXY, Xl)
+    wDiffYf = Symbolics.derivative.(wSysXY, Yf)
+    wDiffYl = Symbolics.derivative.(wSysXY, Yl)
+    inclusiveX = wDiffXf .+ R .* wDiffXl
+    inclusiveY = wDiffYf .+ R .* wDiffYl
+
+    Eq = matSub(
+        Xf.=>X, 
+        Xl.=>X, 
+        Yf.=>Y, 
+        Yl.=>Y,
+        [d].=>[world[:d]],
+        [epsilon].=>[world[:epsilon]]
+    )
+
+    incXEq = substitute.(inclusiveX, Eq)
+
+    incYEq = substitute.(inclusiveY, Eq)
+
+    grads = [incXEq, incYEq]
+    directSel = [wDiffXf, wDiffYf]
+    indirectSel = [R .* wDiffXl, R .* wDiffYl]
+
+    return grads, directSel, indirectSel
+end
+
 function genSolF(fFun, world)
     return nlsolve(fFun, 
         reshape(
@@ -798,6 +919,13 @@ function genSolR(rFun, world)
             )
         )
 end
+
+# function genSolR(rFun, world)
+#     return nlsolve(
+#         rFun, ones(world[:q], world[:n]).*0.1
+#         )
+# end
+
 
 # world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 0.0))
 # world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 0.0))
@@ -960,8 +1088,8 @@ function step(world, callFun, callFunW, callFunR,
 end
 
 function runSim(world)
-    world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 0.0))
-    world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 0.0))
+    world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+    world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
     world[:tTr] = simpleTrans(world)
 
     u = ones(world[:q], world[:n])
@@ -1012,16 +1140,18 @@ function runSim(world)
     # Wavg = copy(W) 
     # for q in 1:world[:q]
     #     for n in 1:world[:n]
-    #         Wavg[q,n] = (world[:size]-world[:q]) - (sum(W) - W[q,n])
+    #         Wavg[q,n] = 1 - (sum(W.*F) - W[q,n])*F[q,n]
     #     end
     # end
 
     # wSys = substitute.(wSys, matSub(W.=>Wavg))
 
-    wSys[world[:fixed]...] = 1-W[world[:fixed]...]
+    # wSys[world[:fixed]...] = 1-W[world[:fixed]...]
     for q in 1:world[:q]
         wSys[q, 1] = W[q,1]
     end
+
+    wSys[world[:fixed]...] = 1 - sum((W.*F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))')./sum(F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'))
 
     # wSys = substitute.(wSys, matSub(W[:,1].=>0.0))
 
@@ -1032,7 +1162,7 @@ function runSim(world)
         );
     callFunW = eval(funW[2]);
 
-    grads, directSel, indirectSel = makeSelGrads(wSysSelec, modelM, modelP, modelC, modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, world);
+    grads, directSel, indirectSel = makeSelGrads2(wSysSelec, modelM, modelP, modelC, modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, world);
 
     for i in 1:world[:nGens]
         world = step(world, callFun, callFunW, callFunR,
@@ -1042,7 +1172,7 @@ function runSim(world)
         err = sum(corrErr(world[:gradX], world[:tX]) +
         corrErr(world[:gradY], world[:tY]))
         println(i, " --- ",  err)
-        if err < 1E-6
+        if err < 1E-7
             world[:itr] = i
             break
         end
@@ -1075,6 +1205,7 @@ end
 
 using StatsBase
 testDat = ls[1]
+# testDat = load("tempDicts/1.bson")
 testDat[:relW] = testDat[:tW]./mean(testDat[:tW])
 testDat[:qVal] = mean(mapslices(diff, testDat[:relW], dims=1))
 testDat[:weightedFit] = testDat[:relW] .* testDat[:tF]
@@ -1085,34 +1216,298 @@ world = copy(testDat)
 totDiff = world[:tW][1,2] - world[:tW][2,2]
 Wn = makeFArray(world)
 Wd = makeFArray(world)
-# mortality 
-wSys, num, den = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
 
-function gradW(wSys, tW, world)
-    return res = substitute.(
-        substitute.(
-            substitute.(
-                wSys, d=>world[:d]
-            ), 
-            epsilon=>world[:epsilon]
-        ), 
-        matSub(
-            F.=>world[:tF], 
-            Cl.=>world[:Cl], 
-            Cf.=>world[:Cf],
-            C.=>world[:C],
-            Ml.=>world[:Ml],
-            Mf.=>world[:Mf],
-            M.=>world[:M],
-            Pl.=>world[:Pl],
-            Pf.=>world[:Pf],
-            P.=>world[:P],
-            W.=>tW
-        )
+world = ls[1]
+world[:gain] = world[:ratio]/world[:stab]
+world[:loss] = (1-world[:ratio])/world[:stab]
+
+world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+world[:tTr] = simpleTrans(world)
+
+u = ones(world[:q], world[:n])
+u[:, 1] .= 0.0
+# world[:tW] = u
+world[:tF] = reshape(
+    repeat([1/world[:size]], world[:size]), (world[:q], world[:n])
+)
+# world[:tR] = reshape(
+#     repeat(
+#         hcat([0 0], [1/p for p in 2:(world[:n]-1)]'), 
+#         world[:q]
+#     ), 
+#     (world[:q], world[:n])
+# )
+modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, modelM, modelP, modelC = makeModelExpr(world)
+
+world = updateMPC(world, modelM, modelP, modelC, modelMl, modelPl, modelCl)
+
+wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
+
+## grads made in parts 
+grads, directSel, indirectSel = makeSelGrads(Wn./Wd, modelM, modelP, modelC, modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, world);
+# grads = directSel
+
+gradX = substitute.(grads[1], matSub(
+    X.=>world[:tX], 
+    Y.=>world[:tY], 
+    F.=>world[:tF], 
+    W.=>world[:tW], 
+    R.=>world[:tR]
+    ))
+gradY = substitute.(grads[2], matSub(
+    X.=>world[:tX], 
+    Y.=>world[:tY], 
+    F.=>world[:tF], 
+    W.=>world[:tW], 
+    R.=>world[:tR]
+    ))
+
+gradXdir = substitute.(directSel[1], matSub(X.=>world[:tX], Y.=>world[:tY], F.=>world[:tF], W.=>world[:tW], R.=>world[:tR]))
+gradYdir = substitute.(directSel[2], matSub(X.=>world[:tX], Y.=>world[:tY], F.=>world[:tF], W.=>world[:tW], R.=>world[:tR]))
+
+##print a grads 
+using Latexify 
+Xlatex = latexify(grads[1])
+Ylatex = latexify(grads[2])
+numX = latexify(gradX)
+numY = latexify(gradY)
+##
+
+## Grads from X and Y directly 
+# sub in vals to eliminate MPC 
+wSysXY = substitute.(Wn./Wd, matSub(
+    Mf.=>modelMf, 
+    Ml.=>modelMl,
+    P.=>modelP, 
+    Pf.=>modelPf, 
+    Pl.=>modelPl, 
+    C.=>modelC,
+    Cf.=>modelCf, 
+    Cl.=>modelCl, 
+    ))
+wDiffXf = Symbolics.derivative.(wSysXY, Xf)
+wDiffXl = Symbolics.derivative.(wSysXY, Xl)
+wDiffYf = Symbolics.derivative.(wSysXY, Yf)
+wDiffYl = Symbolics.derivative.(wSysXY, Yl)
+inclusiveX = wDiffXf .+ R .* wDiffXl
+inclusiveY = wDiffYf .+ R .* wDiffYl
+
+X2latex = latexify(inclusiveX);
+Y2latex = latexify(inclusiveY);
+
+gradX2 = substitute.(
+    substitute.(inclusiveX, 
+        ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
+    ), 
+    matSub(
+    Xf.=>world[:tX], 
+    Xl.=>world[:tX],
+    Y.=>world[:tY],
+    Yf.=>world[:tY], 
+    Yl.=>world[:tY],
+    F.=>world[:tF], 
+    W.=>world[:tW], 
+    R.=>world[:tR]
     )
-end 
+)
+gradY2 = substitute.(
+    substitute.(inclusiveY, 
+        ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
+    ), 
+    matSub(
+    Xf.=>world[:tX], 
+    Xl.=>world[:tX],
+    Y.=>world[:tY],
+    Yf.=>world[:tY], 
+    Yl.=>world[:tY],
+    F.=>world[:tF], 
+    W.=>world[:tW], 
+    R.=>world[:tR]
+    )
+)
 
-Wn1, Wd1 = addMortality(copy(Wn), copy(Wd), W, Mf, Ml, world)
+gradX2dir = substitute.(
+    substitute.(wDiffXf, 
+        ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
+    ), 
+    matSub(
+    Xf.=>world[:tX], 
+    Xl.=>world[:tX],
+    Y.=>world[:tY],
+    Yf.=>world[:tY], 
+    Yl.=>world[:tY],
+    F.=>world[:tF], 
+    W.=>world[:tW], 
+    R.=>world[:tR]
+    )
+)
+gradY2dir = substitute.(
+    substitute.(wDiffYf, 
+        ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
+    ), 
+    matSub(
+    Xf.=>world[:tX], 
+    Xl.=>world[:tX],
+    Y.=>world[:tY],
+    Yf.=>world[:tY], 
+    Yl.=>world[:tY],
+    F.=>world[:tF], 
+    W.=>world[:tW], 
+    R.=>world[:tR]
+    )
+)
+
+gradY2indir = substitute.(
+    substitute.(world[:tR] .* wDiffYl, 
+        ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
+    ), 
+    matSub(
+    Xf.=>world[:tX], 
+    Xl.=>world[:tX],
+    Y.=>world[:tY],
+    Yf.=>world[:tY], 
+    Yl.=>world[:tY],
+    F.=>world[:tF], 
+    W.=>world[:tW], 
+    R.=>world[:tR]
+    )
+)
+
+wSys[1,2] = 1 -sum((W.*F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))')./sum(F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'))
+for q in 1:world[:q]
+    wSys[q, 1] = W[q,1]
+end
+wSys12 = copy(wSys)
+
+wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
+wSys[2,2] = 1 -sum((W.*F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))')./sum(F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'))
+for q in 1:world[:q]
+    wSys[q, 1] = W[q,1]
+end
+wSys22 = copy(wSys)
+
+funW = ModelingToolkit.build_function(
+        wSys12, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
+        expression=Val{false}
+        );
+callFunW12 = eval(funW[2]);
+
+funW = ModelingToolkit.build_function(
+    wSys22, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
+    expression=Val{false}
+    );
+callFunW22 = eval(funW[2]);
+
+fSys = makeFsys(F, M, P, C, d, world)
+    funF = ModelingToolkit.build_function(
+        fSys, F, M, P, C, d, epsilon;
+        expression=Val{false}
+        );
+    callFun = eval(funF[2]);
+
+wFun12(Fx, x) = callFunW12(
+    reshape(Fx, (world[:q], world[:n])), 
+    reshape(x, (world[:q], world[:n])), 
+    world[:tF], 
+    world[:Mf], 
+    world[:Ml], 
+    world[:Pf], 
+    world[:Pl],
+    world[:P],
+    world[:C],
+    world[:Cl],
+    world[:Cf],
+    world[:d], 
+    world[:epsilon]
+)
+
+wFun22(Fx, x) = callFunW22(
+    reshape(Fx, (world[:q], world[:n])), 
+    reshape(x, (world[:q], world[:n])), 
+    world[:tF], 
+    world[:Mf], 
+    world[:Ml], 
+    world[:Pf], 
+    world[:Pl],
+    world[:P],
+    world[:C],
+    world[:Cl],
+    world[:Cf],
+    world[:d], 
+    world[:epsilon]
+)
+
+fFun(Fx, x) = callFun(
+        reshape(Fx, (world[:q], world[:n])), 
+        reshape(x, (world[:q], world[:n])),  
+        world[:M], 
+        world[:P], 
+        world[:C], 
+        world[:d], 
+        world[:epsilon]
+        )
+solF = genSolF(fFun, world)
+world[:tF] = solF.zero
+
+
+solW12 = genSolW(wFun12, world)
+# display(solW12.zero)
+solW22 = genSolW(wFun22, world)
+# display(solW22.zero)
+
+println("Freq")
+display(pprint(world[:tF]))
+println("Fitnesses")
+display(pprint(world[:tW]))
+println("Relatednesses")
+display(pprint(world[:tR]))
+println("X grad from W")
+display(gradX2)
+println("Y grad from W")
+display(gradY2)
+# println("X grad from MPC")
+# display(gradX)
+# println("Y grad from MPC")
+# display(gradY)
+
+#jyulia
+# -(0.1W₁ˏ₃ + 0.1W₂ˏ₂ + 0.1F₁ˏ₁*W₁ˏ₂ + 0.05F₁ˏ₂*(W₁ˏ₂ + W₁ˏ₃) + 0.05F₂ˏ₁*(W₁ˏ₂ + W₂ˏ₂) + 0.05F₂ˏ₂*(W₁ˏ₂ + W₂ˏ₃) + 0.05F₃ˏ₁*(W₁ˏ₂ + W₃ˏ₂) + 0.05F₃ˏ₂*(W₁ˏ₂ + W₃ˏ₃) + 0.5W₁ˏ₃*(0.1F₁ˏ₂ + 0.2F₁ˏ₃ + 0.4F₂ˏ₂ + 0.5F₂ˏ₃ + 0.7F₃ˏ₂ + 0.8F₃ˏ₃))*((0.15000000000000002 + 0.05F₁ˏ₁ + 0.05F₁ˏ₂ + 0.05F₂ˏ₁ + 0.05F₂ˏ₂ + 0.05F₃ˏ₁ + 0.05F₃ˏ₂ + 0.05F₁ˏ₂ + 0.1F₁ˏ₃ + 0.2F₂ˏ₂ + 0.25F₂ˏ₃ + 0.35F₃ˏ₂ + 0.4F₃ˏ₃ + 0.1exp(-Xf₁ˏ₂) + 0.1(Xf₁ˏ₂^2) + 0.1(Yf₁ˏ₂^2))^-2)*(0.2Xf₁ˏ₂ - (0.1exp(-Xf₁ˏ₂)))
+
+#mathemtica
+# -(((0.1* W[1,3]+0.5 *(0.1 *F[1,1]+0.2 *F[1,2]+0.4 *F[2,1]+0.5 *F[2,2]+0.7 *F[3,1]+0.8 *F[3,2]) *W[1,2+1]+0.1 *W[2,1+1]+0.05 *(W[1,1+1]+F[1,0] *W[1,1+1]+F[1,1] *W[1,2+1]+F[2,0] W[2,1+1]+F[2,1] W[2,2+1]+F[3,0] W[3,1+1]+F[3,1] W[3,2+1]))*(-0.1 exp(-Xf[1,1])+0.2 Xf[1,1]))/(0.2 +0.1 exp(-Xf[1,1])+0.5 (0.1 F[1,1]+0.2 F[1,2]+0.4 F[2,1]+0.5 F[2,2]+0.7 F[3,1]+0.8 F[3,2])+0.1 Xf[1,1]^2+0.1 Yf[1,1]^2)^2)
+
+# -(((0.1 w12+0.5 (0.1 f11+0.2 f12+0.4 f21+0.5 f22+0.7 f31+0.8 f32) w12+0.1 w21+0.05 (w11+f10 w11+f11 w12+f20 w21+f21 w22+f30 w31+f31 w32)) (-0.1 E^-xi11+0.2 xi11))/(0.2 +0.1 E^-xi11+0.5 (0.1 f11+0.2 f12+0.4 f21+0.5 f22+0.7 f31+0.8 f32)+0.1 xi11^2+0.1 yi11^2)^2)
+
+# mortality 
+# wSys, num, den = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
+# wSys[1,2] = 1 - W[1,2]
+
+# function gradW(wSys, tW, world)
+#     return res = substitute.(
+#         substitute.(
+#             substitute.(
+#                 wSys, d=>world[:d]
+#             ), 
+#             epsilon=>world[:epsilon]
+#         ), 
+#         matSub(
+#             F.=>world[:tF], 
+#             Cl.=>world[:Cl], 
+#             Cf.=>world[:Cf],
+#             C.=>world[:C],
+#             Ml.=>world[:Ml],
+#             Mf.=>world[:Mf],
+#             M.=>world[:M],
+#             Pl.=>world[:Pl],
+#             Pf.=>world[:Pf],
+#             P.=>world[:P],
+#             W.=>tW
+#         )
+#     )
+# end 
+
+# Wn1, Wd1 = addMortality(copy(Wn), copy(Wd), W, Mf, Ml, world)
 
 # world = produceSim(worldSet[1])
 
@@ -1281,3 +1676,90 @@ Wn1, Wd1 = addMortality(copy(Wn), copy(Wd), W, Mf, Ml, world)
 #     return f!
 # end
 # solFun = makeFun(world)
+
+# Wn = makeFArray(world)
+# Wd = makeFArray(world)
+# Wn1, Wd1 = addMortality(copy(Wn), copy(Wd), W, Mf, Ml, world)
+# Wn2, Wd2 = addTrans(copy(Wn1), copy(Wd1), W, world)
+# Wn3, Wd3 = addLocBirth(copy(Wn2), copy(Wd2), W, Pf, Pl, d, world)
+# Wn4, Wd4 = addImmigration(copy(Wn3), copy(Wd3), W, F, P, d, world)
+# Wn5, Wd5 = addFights(copy(Wn4), copy(Wd4), W, F, C, Cf, Cl, epsilon, world)
+# Wn6, Wd6 = addDistantBirth(copy(Wn5), copy(Wd5), W, F, Pf, world)
+
+# ww = Wn5-Wn4
+# ww2 = substitute.(ww, matSub(Cl.=>modelCf, Cf.=>modelCl))
+# ww3 = substitute.(ww2, ([epsilon=>world[:epsilon]]))
+# ww4 = substitute.(ww3, matSub(Yl.=>world[:tY], Yf.=>world[:tY]))
+
+# wwd = Wd5-Wd4
+# wwd2 = substitute.(wwd, matSub(Cl.=>modelCf, Cf.=>modelCl))
+# wwd3 = substitute.(wwd2, ([epsilon=>world[:epsilon]]))
+# wwd4 = substitute.(wwd3, matSub(Yl.=>world[:tY], Yf.=>world[:tY]))
+
+# ws = Wn6 
+# ws1 = substitute.(ws, matSub(
+#     [epsilon].=>[1], 
+#     [d].=>[0.5],
+#     Cl.=>world[:tY],
+#     Cf.=>world[:tY],
+#     Pf.=>world[:Pf],
+#     Ml.=>world[:Ml],
+#     Mf.=>world[:Mf]
+# ))
+# ws1[1,4]
+
+# dws1 = Symbolics.derivative(ws1[2,3], Yl[2,3])
+
+# dw = wDiffYl
+# dw = substitute.(dw, matSub(
+#     # [epsilon].=>[1], 
+#     # [d].=>[0.5],
+#     Cl.=>world[:tY],
+#     Cf.=>world[:tY],
+#     Pf.=>world[:Pf],
+#     Ml.=>world[:Ml],
+#     Mf.=>world[:Mf]
+# ))
+# dw[2,3]
+
+# wSysXY = substitute.(Wn6, matSub(
+#     Mf.=>modelMf, 
+#     Ml.=>modelMl,
+#     P.=>modelP, 
+#     Pf.=>modelPf, 
+#     Pl.=>modelPl, 
+#     Cf.=>modelCf, 
+#     Cl.=>modelCl, 
+#     ))
+
+# dws1 = Symbolics.derivative(wSysXY[2,3], Yl[2,3])
+
+# dws = substitute.(dws1, matSub(
+#     [epsilon].=>[1], 
+#     [d].=>[0.5],
+#     Cl.=>world[:tY],
+#     Cf.=>world[:tY],
+#     Pf.=>world[:Pf],
+#     Ml.=>world[:Ml],
+#     Mf.=>world[:Mf]
+# ))[1]
+
+# dws = substitute.(Wn6, matSub(
+#     [epsilon].=>[1], 
+#     [d].=>[0.5],
+#     Cl.=>modelCl,
+#     Cf.=>modelCf,
+#     Pf.=>world[:Pf],
+#     Ml.=>world[:Ml],
+#     Mf.=>world[:Mf]
+# ))[1]
+
+# dws[2,3]
+
+# v = makeFArray(world[:q], world[:n])
+# for q in 1:world[:q]
+#     for n in 1:world[:n]
+#         v[q,n] = victory(Yf[2,3]+ Yl[2,3], (n-1)*Yl[q, n])
+#     end
+# end
+

@@ -50,7 +50,7 @@ source ~/.bashrc
 #! In this example, each job will be passed its index, so each output file will contain a different value
 echo "This is job" $SLURM_ARRAY_TASK_ID
 #! Command line that we want to run:
-julia simulationHPC_2.jl
+julia simulationHPC_New.jl
 
 # jobDir=Job_$SLURM_ARRAY_TASK_ID_$SLURM_JOBID
 # mkdir $jobDir
