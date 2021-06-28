@@ -3,6 +3,7 @@ using DataFrames
 using DrWatson
 using CSV
 using StatsBase
+using NLsolve 
 
 datdir = joinpath("/home", "mmp38", "rds", "hpc-work")
 resdir = joinpath("..", "results")
