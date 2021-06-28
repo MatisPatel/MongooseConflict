@@ -20,7 +20,7 @@ end
 rows=[]
 fullDat = DataFrame(Dict(:ID => 0))
 for i in 1:length(files)
-    # try
+    try
         testDat = load(joinpath(datdir, files[i]))
         normF = testDat[:tF][:, 2:end]./sum(testDat[:tF][:, 2:end])
         nArray = repeat([i for i in 1:(testDat[:n]-1)]', testDat[:q])
@@ -76,9 +76,9 @@ for i in 1:length(files)
             end
         end
         save(joinpath(resdir, string(tempDict[:ID], ".bson")), tempDict)
-    # catch 
-    #     println("failed to load ", files[i])
-    # end
+    catch 
+        println("failed to process ", files[i])
+    end
         # rowDat = DataFrame(;tempDict...)
     # global fullDat = outerjoin(fullDat, rowDat, on = names(rowDat))
     # append!(fullDat, rowDat)
