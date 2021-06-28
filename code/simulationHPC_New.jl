@@ -5,7 +5,7 @@ using DrWatson
 
 @variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
 
-world = load(joinpath("tempDicts", string(ENV["SLURM_ARRAY_TASK_ID"], ".bson")))
+world = load(joinpath("/home", "mmp38", "mongooseConflict", "code", "tempDicts", string(ENV["SLURM_ARRAY_TASK_ID"], ".bson")))
 
 @variables begin 
     F[1:world[:q], 1:world[:n]]
@@ -794,7 +794,7 @@ function runSim(world)
 
     # wSys[world[:fixed]...] = 1-W[world[:fixed]...]
     wSys[world[:fixed]...] = 1 - sum((W.*F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))')./sum(F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'))
-    
+
     for q in 1:world[:q]
         wSys[q, 1] = W[q,1]
     end
