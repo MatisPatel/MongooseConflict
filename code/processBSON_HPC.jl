@@ -7,6 +7,8 @@ using NLsolve
 
 datdir = joinpath("/home", "mmp38", "rds", "hpc-work")
 resdir = joinpath("..", "results")
+# datdir = joinpath("..", "data")
+# resdir = joinpath("..", "results")
 
 files  = readdir(datdir)
 
@@ -18,7 +20,7 @@ end
 rows=[]
 fullDat = DataFrame(Dict(:ID => 0))
 for i in 1:length(files)
-    try
+    # try
         testDat = load(joinpath(datdir, files[i]))
         normF = testDat[:tF][:, 2:end]./sum(testDat[:tF][:, 2:end])
         nArray = repeat([i for i in 1:(testDat[:n]-1)]', testDat[:q])
@@ -56,9 +58,11 @@ for i in 1:length(files)
         testDat[:totFreq] = sum(testDat[:tF])
         testDat[:popSize] = sum(testDat[:tF][:, 2:end])
         testDat[:collapsed] = isapprox(sum(testDat[:tF][:, 1]), 1; atol=1E-9) 
+        testDat[:fixed] = string(testDat[:fixed]...) 
 
         tempDict = Dict{Symbol, Any}(:ID=>i)
         for (key, val) in testDat
+            println(key)
             if !isa(val, Array)
                 tempDict[key] = val 
             else 
@@ -72,9 +76,9 @@ for i in 1:length(files)
             end
         end
         save(joinpath(resdir, string(tempDict[:ID], ".bson")), tempDict)
-    catch 
-        println("failed to load ", files[i])
-    end
+    # catch 
+    #     println("failed to load ", files[i])
+    # end
         # rowDat = DataFrame(;tempDict...)
     # global fullDat = outerjoin(fullDat, rowDat, on = names(rowDat))
     # append!(fullDat, rowDat)
