@@ -57,7 +57,7 @@ for i in 1:length(files)
 
         testDat[:totFreq] = sum(testDat[:tF])
         testDat[:popSize] = sum(testDat[:tF][:, 2:end])
-        testDat[:collapsed] = isapprox(sum(testDat[:tF][:, 1]), 1; atol=1E-9) 
+        testDat[:collapsed] = isapprox(sum(testDat[:tF][:, 1]), 1; atol=1E-6) 
         testDat[:fixed] = string(testDat[:fixed]...) 
 
         tempDict = Dict{Symbol, Any}(:ID=>i)

@@ -8,25 +8,30 @@ using DrWatson
 pprint(x) = round.(x, digits=4)
 
 world = Dict{Symbol, Any}(
-    :force => [0.0],
+    :force => [0.03],
+    :itr =>0,
     :nGens => 1,
-    :realGen =>  [@onlyif(:force != 0, 1000), @onlyif(:force==0, 1)],
-    :q => 3,
+    :realGen =>  [@onlyif(:force != 0, 10000), @onlyif(:force==0, 1)],
+    :q => 5,
     :n => 3,
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
-    :stab => 5,
-    :ratio => 0.5,
+    :stab => [5],
+    :ratio => 0.1,
     :basem => 0.1,
-    :k => 0.1,
+    :k => 0.2,
     :b => 0.3,
-    :d => 0.5,
-    :epsilon => 0,
+    :d => [0.5],
+    :epsilon => 1,
     :multX => 0.1,
     :multY => 0.1,
     :fixed => [[1,2]],
     # :fixed => [[1,2], [5,3], [3,3], [3,2]],
-    :placeholder => [[], []]
+    :placeholder => [[], []],
+    :solver => :normal, #normal, ADAM, momentum, weighted
+    :momentum => 0.9,
+    :beta1 => 0.8,
+    :beta2 => 0.999
 )
 
 world[:size] = world[:n]*world[:q]
@@ -988,7 +993,7 @@ function step(world, callFun, callFunW, callFunR,
     modelM, modelP, modelC, modelMl, modelPl, modelCl
     )
     world = updateMPC(copy(world), modelM, modelP, modelC, modelMl, modelPl, modelCl)
-
+    world[:itr] += 1
     fFun(Fx, x) = callFun(
         reshape(Fx, (world[:q], world[:n])), 
         reshape(x, (world[:q], world[:n])),  
@@ -1044,45 +1049,87 @@ function step(world, callFun, callFunW, callFunR,
     world[:gradX] = Symbolics.value.(gradX)
     world[:gradY] = Symbolics.value.(gradY)
 
-    # if !(haskey(world, :gradXLast))
-    #     world[:gradXLast] = world[:gradX]
-    #     world[:gradYLast] = world[:gradY]
-    #     world[:gradXCurr] = world[:gradX]
-    #     world[:gradYCurr] = world[:gradY]
-    # end 
+    if world[:solver] == :momentum
+        if !(haskey(world, :gradXLast))
+            world[:gradXLast] = world[:gradX].*0.0
+            world[:gradYLast] = world[:gradY].*0.0
+            world[:gradXCurr] = world[:gradX]
+            world[:gradYCurr] = world[:gradY]
+        end 
 
-    # world[:gradXLast] = world[:gradYCurr]
-    # world[:gradYLast] = world[:gradYCurr]
-    # world[:gradXCurr] = world[:gradX] .+ world[:momentum] .* world[:gradXLast]
-    # world[:gradYCurr] = world[:gradY] .+ world[:momentum] .* world[:gradYLast]
+        world[:gradXLast] = world[:gradYCurr]
+        world[:gradYLast] = world[:gradYCurr]
+        world[:gradXCurr] = world[:gradX] .+ world[:momentum] .* world[:gradXLast]
+        world[:gradYCurr] = world[:gradY] .+ world[:momentum] .* world[:gradYLast]
 
-    # world[:tX] = clamp.(
-    #     world[:tX] .+ world[:force]*clamp.(world[:gradXCurr], -1, 1),
-    #     # clamp.(world[:force]*world[:gradX], -world[:force], world[:force]), 
-    #     0,
-    #     1
-    # )
+        world[:tX] = clamp.(
+            world[:tX] .+ world[:force]*clamp.(world[:gradXCurr], -1, 1),
+            # clamp.(world[:force]*world[:gradX], -world[:force], world[:force]), 
+            0,
+            1
+        )
 
-    # world[:tY] = clamp.(
-    #     world[:tY] .+ world[:force]*clamp.(world[:gradYCurr], -1, 1),
-    #     # clamp.(world[:force]*world[:gradY], -world[:force], world[:force]), 
-    #     0,
-    #     1
-    # )
+        world[:tY] = clamp.(
+            world[:tY] .+ world[:force]*clamp.(world[:gradYCurr], -1, 1),
+            # clamp.(world[:force]*world[:gradY], -world[:force], world[:force]), 
+            0,
+            1
+        )
+    end
 
-    world[:tX] = clamp.(
-        world[:tX] .+ world[:force]*clamp.(world[:gradX], -1, 1),
-        # clamp.(world[:force]*world[:gradX], -world[:force], world[:force]), 
-        0,
-        1
-    )
+    if world[:solver] == :weighted
+        world[:tX] = clamp.(
+            world[:tX] .+ (0.01 .+ world[:tW]).*(world[:force]*world[:gradX]),
+            # clamp.(world[:force]*world[:gradX], -world[:force], world[:force]), 
+            0,
+            1
+        )
 
-    world[:tY] = clamp.(
-        world[:tY] .+ world[:force]*clamp.(world[:gradY], -1, 1),
-        # clamp.(world[:force]*world[:gradY], -world[:force], world[:force]), 
-        0,
-        1
-    )
+        world[:tY] = clamp.(
+            world[:tY] .+ (0.01 .+ world[:tW]).*(world[:force]*world[:gradY]),
+            # clamp.(world[:force]*world[:gradY], -world[:force], world[:force]), 
+            0,
+            1
+        )
+    end
+    # 980 673
+    if world[:solver] == :normal
+        world[:tX] = clamp.(
+            world[:tX] .+ (world[:force]*world[:gradX]),
+            # clamp.(world[:force]*world[:gradX], -world[:force], world[:force]), 
+            0,
+            1
+        )
+
+        world[:tY] = clamp.(
+            world[:tY] .+ (world[:force]*world[:gradY]),
+            # clamp.(world[:force]*world[:gradY], -world[:force], world[:force]), 
+            0,
+            1
+        )
+    end
+
+    if world[:solver] == :adam 
+        world[:mX] = world[:beta1] .* world[:mX] .+ (1.0 - world[:beta1])*world[:gradX]
+        world[:vX] = (world[:beta2] .* world[:vX]) .+ (1.0 - world[:beta2]).*world[:gradX].^2
+        mXhat = world[:mX]./(1-world[:beta1]^world[:itr])
+        vXhat = world[:vX]./(1-world[:beta2]^world[:itr])
+        world[:tX] = clamp.(
+            world[:tX] .+ (world[:force] .* mXhat ./ (sqrt.(vXhat).+1E-8)),
+            0,
+            1
+        )
+
+        world[:mY] = world[:beta1] .* world[:mY] .+ (1.0 - world[:beta1])*world[:gradY]
+        world[:vY] = (world[:beta2] .* world[:vY]) .+ (1.0 - world[:beta2]).*world[:gradY].^2
+        mYhat = world[:mY]./(1-world[:beta1])
+        vYhat = world[:vY]./(1-world[:beta2])
+        world[:tY] = clamp.(
+            world[:tY] .+ (world[:force] .* mYhat ./ (sqrt.(vYhat).+1E-8)),
+            0,
+            1
+        )
+    end
 
     return world
 end
@@ -1091,6 +1138,14 @@ function runSim(world)
     world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
     world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
     world[:tTr] = simpleTrans(world)
+
+    if world[:solver] == :adam 
+        world[:mX] = fill!(zeros(world[:q], world[:n]), 0.0)
+        world[:vX] = fill!(zeros(world[:q], world[:n]), 0.0)
+        world[:mY] = fill!(zeros(world[:q], world[:n]), 0.0)
+        world[:vY] = fill!(zeros(world[:q], world[:n]), 0.0)
+    end
+
 
     u = ones(world[:q], world[:n])
     u[:, 1] .= 0.0
@@ -1172,8 +1227,11 @@ function runSim(world)
         err = sum(corrErr(world[:gradX], world[:tX]) +
         corrErr(world[:gradY], world[:tY]))
         println(i, " --- ",  err)
-        if err < 1E-7
-            world[:itr] = i
+        # println("------ ", sum(world[:tF][:, 2:end]))
+        if err < 1E-8 
+            world[:force] = world[:force]/10
+        end
+        if err < -10
             break
         end
     end
@@ -1194,7 +1252,7 @@ end
 # world[:nGens] = world[:realGen]
 # worldSet = dict_list(world)
 ls =[]
-for cosm in worldSet
+@time for cosm in worldSet
     cosm[:nGens] = cosm[:realGen]
     cosm[:gain] = cosm[:ratio]/cosm[:stab]
     cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
@@ -1203,269 +1261,271 @@ for cosm in worldSet
     save(joinpath("..", "data", savename(world, "bson")), resWorld)
 end
 
-using StatsBase
-testDat = ls[1]
-# testDat = load("tempDicts/1.bson")
-testDat[:relW] = testDat[:tW]./mean(testDat[:tW])
-testDat[:qVal] = mean(mapslices(diff, testDat[:relW], dims=1))
-testDat[:weightedFit] = testDat[:relW] .* testDat[:tF]
-testDat[:weightedQ] =  mean(mapslices(diff, testDat[:weightedFit], dims=1))
+save("worldList.bson", ls)
 
-# calc diffs in fitness for each term
-world = copy(testDat)
-totDiff = world[:tW][1,2] - world[:tW][2,2]
-Wn = makeFArray(world)
-Wd = makeFArray(world)
+# using StatsBase
+# testDat = ls[1]
+# # testDat = load("tempDicts/1.bson")
+# testDat[:relW] = testDat[:tW]./mean(testDat[:tW])
+# testDat[:qVal] = mean(mapslices(diff, testDat[:relW], dims=1))
+# testDat[:weightedFit] = testDat[:relW] .* testDat[:tF]
+# testDat[:weightedQ] =  mean(mapslices(diff, testDat[:weightedFit], dims=1))
 
-world = ls[1]
-world[:gain] = world[:ratio]/world[:stab]
-world[:loss] = (1-world[:ratio])/world[:stab]
+# # calc diffs in fitness for each term
+# world = copy(testDat)
+# totDiff = world[:tW][1,2] - world[:tW][2,2]
+# Wn = makeFArray(world)
+# Wd = makeFArray(world)
 
-world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-world[:tTr] = simpleTrans(world)
+# world = ls[1]
+# world[:gain] = world[:ratio]/world[:stab]
+# world[:loss] = (1-world[:ratio])/world[:stab]
 
-u = ones(world[:q], world[:n])
-u[:, 1] .= 0.0
-# world[:tW] = u
-world[:tF] = reshape(
-    repeat([1/world[:size]], world[:size]), (world[:q], world[:n])
-)
-# world[:tR] = reshape(
-#     repeat(
-#         hcat([0 0], [1/p for p in 2:(world[:n]-1)]'), 
-#         world[:q]
-#     ), 
-#     (world[:q], world[:n])
+# world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+# world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+# world[:tTr] = simpleTrans(world)
+
+# u = ones(world[:q], world[:n])
+# u[:, 1] .= 0.0
+# # world[:tW] = u
+# world[:tF] = reshape(
+#     repeat([1/world[:size]], world[:size]), (world[:q], world[:n])
 # )
-modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, modelM, modelP, modelC = makeModelExpr(world)
+# # world[:tR] = reshape(
+# #     repeat(
+# #         hcat([0 0], [1/p for p in 2:(world[:n]-1)]'), 
+# #         world[:q]
+# #     ), 
+# #     (world[:q], world[:n])
+# # )
+# modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, modelM, modelP, modelC = makeModelExpr(world)
 
-world = updateMPC(world, modelM, modelP, modelC, modelMl, modelPl, modelCl)
+# world = updateMPC(world, modelM, modelP, modelC, modelMl, modelPl, modelCl)
 
-wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
+# wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
 
-## grads made in parts 
-grads, directSel, indirectSel = makeSelGrads(Wn./Wd, modelM, modelP, modelC, modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, world);
-# grads = directSel
+# ## grads made in parts 
+# grads, directSel, indirectSel = makeSelGrads(Wn./Wd, modelM, modelP, modelC, modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, world);
+# # grads = directSel
 
-gradX = substitute.(grads[1], matSub(
-    X.=>world[:tX], 
-    Y.=>world[:tY], 
-    F.=>world[:tF], 
-    W.=>world[:tW], 
-    R.=>world[:tR]
-    ))
-gradY = substitute.(grads[2], matSub(
-    X.=>world[:tX], 
-    Y.=>world[:tY], 
-    F.=>world[:tF], 
-    W.=>world[:tW], 
-    R.=>world[:tR]
-    ))
+# gradX = substitute.(grads[1], matSub(
+#     X.=>world[:tX], 
+#     Y.=>world[:tY], 
+#     F.=>world[:tF], 
+#     W.=>world[:tW], 
+#     R.=>world[:tR]
+#     ))
+# gradY = substitute.(grads[2], matSub(
+#     X.=>world[:tX], 
+#     Y.=>world[:tY], 
+#     F.=>world[:tF], 
+#     W.=>world[:tW], 
+#     R.=>world[:tR]
+#     ))
 
-gradXdir = substitute.(directSel[1], matSub(X.=>world[:tX], Y.=>world[:tY], F.=>world[:tF], W.=>world[:tW], R.=>world[:tR]))
-gradYdir = substitute.(directSel[2], matSub(X.=>world[:tX], Y.=>world[:tY], F.=>world[:tF], W.=>world[:tW], R.=>world[:tR]))
+# gradXdir = substitute.(directSel[1], matSub(X.=>world[:tX], Y.=>world[:tY], F.=>world[:tF], W.=>world[:tW], R.=>world[:tR]))
+# gradYdir = substitute.(directSel[2], matSub(X.=>world[:tX], Y.=>world[:tY], F.=>world[:tF], W.=>world[:tW], R.=>world[:tR]))
 
-##print a grads 
-using Latexify 
-Xlatex = latexify(grads[1])
-Ylatex = latexify(grads[2])
-numX = latexify(gradX)
-numY = latexify(gradY)
-##
+# ##print a grads 
+# using Latexify 
+# Xlatex = latexify(grads[1])
+# Ylatex = latexify(grads[2])
+# numX = latexify(gradX)
+# numY = latexify(gradY)
+# ##
 
-## Grads from X and Y directly 
-# sub in vals to eliminate MPC 
-wSysXY = substitute.(Wn./Wd, matSub(
-    Mf.=>modelMf, 
-    Ml.=>modelMl,
-    P.=>modelP, 
-    Pf.=>modelPf, 
-    Pl.=>modelPl, 
-    C.=>modelC,
-    Cf.=>modelCf, 
-    Cl.=>modelCl, 
-    ))
-wDiffXf = Symbolics.derivative.(wSysXY, Xf)
-wDiffXl = Symbolics.derivative.(wSysXY, Xl)
-wDiffYf = Symbolics.derivative.(wSysXY, Yf)
-wDiffYl = Symbolics.derivative.(wSysXY, Yl)
-inclusiveX = wDiffXf .+ R .* wDiffXl
-inclusiveY = wDiffYf .+ R .* wDiffYl
+# ## Grads from X and Y directly 
+# # sub in vals to eliminate MPC 
+# wSysXY = substitute.(Wn./Wd, matSub(
+#     Mf.=>modelMf, 
+#     Ml.=>modelMl,
+#     P.=>modelP, 
+#     Pf.=>modelPf, 
+#     Pl.=>modelPl, 
+#     C.=>modelC,
+#     Cf.=>modelCf, 
+#     Cl.=>modelCl, 
+#     ))
+# wDiffXf = Symbolics.derivative.(wSysXY, Xf)
+# wDiffXl = Symbolics.derivative.(wSysXY, Xl)
+# wDiffYf = Symbolics.derivative.(wSysXY, Yf)
+# wDiffYl = Symbolics.derivative.(wSysXY, Yl)
+# inclusiveX = wDiffXf .+ R .* wDiffXl
+# inclusiveY = wDiffYf .+ R .* wDiffYl
 
-X2latex = latexify(inclusiveX);
-Y2latex = latexify(inclusiveY);
+# X2latex = latexify(inclusiveX);
+# Y2latex = latexify(inclusiveY);
 
-gradX2 = substitute.(
-    substitute.(inclusiveX, 
-        ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
-    ), 
-    matSub(
-    Xf.=>world[:tX], 
-    Xl.=>world[:tX],
-    Y.=>world[:tY],
-    Yf.=>world[:tY], 
-    Yl.=>world[:tY],
-    F.=>world[:tF], 
-    W.=>world[:tW], 
-    R.=>world[:tR]
-    )
-)
-gradY2 = substitute.(
-    substitute.(inclusiveY, 
-        ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
-    ), 
-    matSub(
-    Xf.=>world[:tX], 
-    Xl.=>world[:tX],
-    Y.=>world[:tY],
-    Yf.=>world[:tY], 
-    Yl.=>world[:tY],
-    F.=>world[:tF], 
-    W.=>world[:tW], 
-    R.=>world[:tR]
-    )
-)
+# gradX2 = substitute.(
+#     substitute.(inclusiveX, 
+#         ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
+#     ), 
+#     matSub(
+#     Xf.=>world[:tX], 
+#     Xl.=>world[:tX],
+#     Y.=>world[:tY],
+#     Yf.=>world[:tY], 
+#     Yl.=>world[:tY],
+#     F.=>world[:tF], 
+#     W.=>world[:tW], 
+#     R.=>world[:tR]
+#     )
+# )
+# gradY2 = substitute.(
+#     substitute.(inclusiveY, 
+#         ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
+#     ), 
+#     matSub(
+#     Xf.=>world[:tX], 
+#     Xl.=>world[:tX],
+#     Y.=>world[:tY],
+#     Yf.=>world[:tY], 
+#     Yl.=>world[:tY],
+#     F.=>world[:tF], 
+#     W.=>world[:tW], 
+#     R.=>world[:tR]
+#     )
+# )
 
-gradX2dir = substitute.(
-    substitute.(wDiffXf, 
-        ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
-    ), 
-    matSub(
-    Xf.=>world[:tX], 
-    Xl.=>world[:tX],
-    Y.=>world[:tY],
-    Yf.=>world[:tY], 
-    Yl.=>world[:tY],
-    F.=>world[:tF], 
-    W.=>world[:tW], 
-    R.=>world[:tR]
-    )
-)
-gradY2dir = substitute.(
-    substitute.(wDiffYf, 
-        ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
-    ), 
-    matSub(
-    Xf.=>world[:tX], 
-    Xl.=>world[:tX],
-    Y.=>world[:tY],
-    Yf.=>world[:tY], 
-    Yl.=>world[:tY],
-    F.=>world[:tF], 
-    W.=>world[:tW], 
-    R.=>world[:tR]
-    )
-)
+# gradX2dir = substitute.(
+#     substitute.(wDiffXf, 
+#         ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
+#     ), 
+#     matSub(
+#     Xf.=>world[:tX], 
+#     Xl.=>world[:tX],
+#     Y.=>world[:tY],
+#     Yf.=>world[:tY], 
+#     Yl.=>world[:tY],
+#     F.=>world[:tF], 
+#     W.=>world[:tW], 
+#     R.=>world[:tR]
+#     )
+# )
+# gradY2dir = substitute.(
+#     substitute.(wDiffYf, 
+#         ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
+#     ), 
+#     matSub(
+#     Xf.=>world[:tX], 
+#     Xl.=>world[:tX],
+#     Y.=>world[:tY],
+#     Yf.=>world[:tY], 
+#     Yl.=>world[:tY],
+#     F.=>world[:tF], 
+#     W.=>world[:tW], 
+#     R.=>world[:tR]
+#     )
+# )
 
-gradY2indir = substitute.(
-    substitute.(world[:tR] .* wDiffYl, 
-        ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
-    ), 
-    matSub(
-    Xf.=>world[:tX], 
-    Xl.=>world[:tX],
-    Y.=>world[:tY],
-    Yf.=>world[:tY], 
-    Yl.=>world[:tY],
-    F.=>world[:tF], 
-    W.=>world[:tW], 
-    R.=>world[:tR]
-    )
-)
+# gradY2indir = substitute.(
+#     substitute.(world[:tR] .* wDiffYl, 
+#         ([B=>world[:basem], epsilon=>world[:epsilon], d=>world[:d]],)
+#     ), 
+#     matSub(
+#     Xf.=>world[:tX], 
+#     Xl.=>world[:tX],
+#     Y.=>world[:tY],
+#     Yf.=>world[:tY], 
+#     Yl.=>world[:tY],
+#     F.=>world[:tF], 
+#     W.=>world[:tW], 
+#     R.=>world[:tR]
+#     )
+# )
 
-wSys[1,2] = 1 -sum((W.*F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))')./sum(F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'))
-for q in 1:world[:q]
-    wSys[q, 1] = W[q,1]
-end
-wSys12 = copy(wSys)
+# wSys[1,2] = 1 -sum((W.*F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))')./sum(F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'))
+# for q in 1:world[:q]
+#     wSys[q, 1] = W[q,1]
+# end
+# wSys12 = copy(wSys)
 
-wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
-wSys[2,2] = 1 -sum((W.*F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))')./sum(F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'))
-for q in 1:world[:q]
-    wSys[q, 1] = W[q,1]
-end
-wSys22 = copy(wSys)
+# wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
+# wSys[2,2] = 1 -sum((W.*F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))')./sum(F.*reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'))
+# for q in 1:world[:q]
+#     wSys[q, 1] = W[q,1]
+# end
+# wSys22 = copy(wSys)
 
-funW = ModelingToolkit.build_function(
-        wSys12, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
-        expression=Val{false}
-        );
-callFunW12 = eval(funW[2]);
+# funW = ModelingToolkit.build_function(
+#         wSys12, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
+#         expression=Val{false}
+#         );
+# callFunW12 = eval(funW[2]);
 
-funW = ModelingToolkit.build_function(
-    wSys22, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
-    expression=Val{false}
-    );
-callFunW22 = eval(funW[2]);
+# funW = ModelingToolkit.build_function(
+#     wSys22, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
+#     expression=Val{false}
+#     );
+# callFunW22 = eval(funW[2]);
 
-fSys = makeFsys(F, M, P, C, d, world)
-    funF = ModelingToolkit.build_function(
-        fSys, F, M, P, C, d, epsilon;
-        expression=Val{false}
-        );
-    callFun = eval(funF[2]);
+# fSys = makeFsys(F, M, P, C, d, world)
+#     funF = ModelingToolkit.build_function(
+#         fSys, F, M, P, C, d, epsilon;
+#         expression=Val{false}
+#         );
+#     callFun = eval(funF[2]);
 
-wFun12(Fx, x) = callFunW12(
-    reshape(Fx, (world[:q], world[:n])), 
-    reshape(x, (world[:q], world[:n])), 
-    world[:tF], 
-    world[:Mf], 
-    world[:Ml], 
-    world[:Pf], 
-    world[:Pl],
-    world[:P],
-    world[:C],
-    world[:Cl],
-    world[:Cf],
-    world[:d], 
-    world[:epsilon]
-)
+# wFun12(Fx, x) = callFunW12(
+#     reshape(Fx, (world[:q], world[:n])), 
+#     reshape(x, (world[:q], world[:n])), 
+#     world[:tF], 
+#     world[:Mf], 
+#     world[:Ml], 
+#     world[:Pf], 
+#     world[:Pl],
+#     world[:P],
+#     world[:C],
+#     world[:Cl],
+#     world[:Cf],
+#     world[:d], 
+#     world[:epsilon]
+# )
 
-wFun22(Fx, x) = callFunW22(
-    reshape(Fx, (world[:q], world[:n])), 
-    reshape(x, (world[:q], world[:n])), 
-    world[:tF], 
-    world[:Mf], 
-    world[:Ml], 
-    world[:Pf], 
-    world[:Pl],
-    world[:P],
-    world[:C],
-    world[:Cl],
-    world[:Cf],
-    world[:d], 
-    world[:epsilon]
-)
+# wFun22(Fx, x) = callFunW22(
+#     reshape(Fx, (world[:q], world[:n])), 
+#     reshape(x, (world[:q], world[:n])), 
+#     world[:tF], 
+#     world[:Mf], 
+#     world[:Ml], 
+#     world[:Pf], 
+#     world[:Pl],
+#     world[:P],
+#     world[:C],
+#     world[:Cl],
+#     world[:Cf],
+#     world[:d], 
+#     world[:epsilon]
+# )
 
-fFun(Fx, x) = callFun(
-        reshape(Fx, (world[:q], world[:n])), 
-        reshape(x, (world[:q], world[:n])),  
-        world[:M], 
-        world[:P], 
-        world[:C], 
-        world[:d], 
-        world[:epsilon]
-        )
-solF = genSolF(fFun, world)
-world[:tF] = solF.zero
+# fFun(Fx, x) = callFun(
+#         reshape(Fx, (world[:q], world[:n])), 
+#         reshape(x, (world[:q], world[:n])),  
+#         world[:M], 
+#         world[:P], 
+#         world[:C], 
+#         world[:d], 
+#         world[:epsilon]
+#         )
+# solF = genSolF(fFun, world)
+# world[:tF] = solF.zero
 
 
-solW12 = genSolW(wFun12, world)
-# display(solW12.zero)
-solW22 = genSolW(wFun22, world)
-# display(solW22.zero)
+# solW12 = genSolW(wFun12, world)
+# # display(solW12.zero)
+# solW22 = genSolW(wFun22, world)
+# # display(solW22.zero)
 
-println("Freq")
-display(pprint(world[:tF]))
-println("Fitnesses")
-display(pprint(world[:tW]))
-println("Relatednesses")
-display(pprint(world[:tR]))
-println("X grad from W")
-display(gradX2)
-println("Y grad from W")
-display(gradY2)
+# println("Freq")
+# display(pprint(world[:tF]))
+# println("Fitnesses")
+# display(pprint(world[:tW]))
+# println("Relatednesses")
+# display(pprint(world[:tR]))
+# println("X grad from W")
+# display(gradX2)
+# println("Y grad from W")
+# display(gradY2)
 # println("X grad from MPC")
 # display(gradX)
 # println("Y grad from MPC")
