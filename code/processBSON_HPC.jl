@@ -59,7 +59,7 @@ for i in 1:length(files)
         testDat[:popSize] = sum(testDat[:tF][:, 2:end])
         testDat[:collapsed] = isapprox(sum(testDat[:tF][:, 1]), 1; atol=1E-6) 
         testDat[:fixed] = string(testDat[:fixed]...) 
-
+        testDat[:fightNum] = sum(testDat[:epsilon].*kron(testDat[:tF], testDat[:tF]))
         tempDict = Dict{Symbol, Any}(:ID=>i)
         for (key, val) in testDat
             # println(key)
