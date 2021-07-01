@@ -37,8 +37,8 @@ classifyStability <- Vectorize(function(stability){
 })
 
 
-dat <- read_csv('../results/new_run1.csv') %>% 
-  filter(ratio>0.2, ratio<0.9, fixed=="12", collapsed==FALSE) %>%
+dat <- read_csv('../results/k02_run_full.csv') %>% 
+  filter(ratio>0.2, fixed=="12", collapsed==FALSE) %>%
   distinct(fixed, force, d, epsilon, stab, ratio, .keep_all=TRUE) %>%
   mutate(gain_loss = paste(gain, loss, sep="_"),
          envRatio = gain/(gain+loss),
@@ -51,7 +51,7 @@ dat <- read_csv('../results/new_run1.csv') %>%
 
 plotDat <- dat %>% 
   # filter(force==0|(force!=0&err<1E-6)) %>%
-  group_by(d,epsilon, force, stab, rat, fixed) %>%
+  group_by(d,epsilon, force, treatStab, ratio, fixed) %>%
   summarise(
     gX = mean(groupAvgX, na.rm=T),
     gY = mean(groupAvgY, na.rm=T),
@@ -71,7 +71,7 @@ plotDat <- dat %>%
   mutate(
     investGY = gY/(gX+gY),
     investGX = gX/(gX+gY),
-    environment = paste(rat, stab, sep="_")
+    # environment = paste(ratio, stab, sep="_")
   )%>%
   ungroup()
 
@@ -80,14 +80,19 @@ plotDat5 <- filter(plotDat, force==0.1)
 
 ggplot(filter(plotDat5, epsilon%in%c(1, 5, 10))) +
   facet_grid(~epsilon, scales="free") +
-  geom_path(aes(d, gY,  color=treatStab, linetype=treatRat), size=1) +
+  geom_path(aes(avgR, gY,  color=treatStab, linetype=as.factor(ratio)), size=1) +
   my_theme
 ggsave("../graphs/1_Y_rel_byEpsilon.png")
 
-ggplot(filter(plotDat5, epsilon==1, (ratio==0.2|ratio==0.1))) +
-  geom_path(aes(d, gY,  color=as.factor(stab), linetype=as.factor(ratio)), size=1) +
+ggplot(filter(plotDat5, epsilon%in%c(1, 5, 10))) +
+  facet_grid(~epsilon, scales="free") +
+  geom_path(aes(avgR, gX,  color=treatStab, linetype=as.factor(ratio)), size=1) +
   my_theme
-ggplot(filter(plotDat0, epsilon==1)) +
+
+ggplot(filter(plotDat5, epsilon==10)) +
+  geom_path(aes(d, gY,  color=as.factor(treatStab), linetype=as.factor(ratio)), size=1) +
+  my_theme
+ggplot(filter(plotDat0, epsilon==10)) +
   geom_path(aes(d, gY,  color=as.factor(stab), linetype=as.factor(ratio)), size=1) +
   my_theme
 
@@ -113,8 +118,8 @@ ggsave("../graphs/3_investY_rel_byEpsilon.png")
 
 ggplot(filter(plotDat5,  epsilon%in%c(1,5,10), d>0.1)) +
   facet_grid(~epsilon, scales="free") +
-  geom_path(aes(avgR, gX,  color=treatStab, linetype=treatRat), size=1) +
-  geom_path(aes(avgR, gY,  color=treatStab, linetype=treatRat), size=1) +
+  geom_path(aes(avgR, gX,  color=treatStab, linetype=as.factor(ratio)), size=1) +
+  geom_path(aes(avgR, gY,  color=treatStab, linetype=as.factor(ratio)), size=1) +
   my_theme
 
 ggplot(filter(plotDat5,  d%in%c(0.1, 0.5, 0.9))) +
@@ -125,7 +130,7 @@ ggplot(filter(plotDat5,  d%in%c(0.1, 0.5, 0.9))) +
 
 ggplot(filter(plotDat5,  d%in%c(0.1, 0.9))) +
   facet_grid(~d, scales="free") +
-  geom_point(aes(epsilon, gY,  color=treatStab, linetype=treatRat), size=1) +
+  geom_path(aes(epsilon, gY,  color=treatStab, linetype=treatRat), size=1) +
   my_theme
 ggsave("../graphs/4_Y_epsilon_byD.png")
 
@@ -135,11 +140,16 @@ ggplot(filter(plotDat5,  d%in%c(0.5, 0.9))) +
   my_theme
 ggsave("../graphs/5_X_epsilon_byD.png")
 
-ggplot(filter(plotDat5,  d%in%c(0.2, 0.9))) +
+ggplot(filter(plotDat5,  d%in%c(0.1, 0.9))) +
   facet_grid(~d, scales="free") +
   geom_path(aes(epsilon, gY/(gY+gX),  color=treatStab, linetype=treatRat), size=1) +
   my_theme
 ggsave("../graphs/6_investY_epsilon_byD.png")
+
+ggplot(filter(plotDat5,  d%in%c(0.1, 0.5, 0.9))) +
+  facet_grid(~d, scales="free") +
+  geom_path(aes(epsilon, popSize,  color=treatStab, linetype=treatRat), size=1) +
+  my_theme
 
 plotDat <- dat %>% 
   # filter(d>0, epsilon<20, force==0|(force==0.5&err<1E-7)) %>%

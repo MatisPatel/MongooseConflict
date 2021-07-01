@@ -54,7 +54,7 @@ for i in 1:length(files)
         testDat[:fit1] = mean(testDat[:relW][:, 2])
         testDat[:fit2] = mean(testDat[:relW][:, 3])
         testDat[:qVal] = mean(mapslices(diff, testDat[:relW], dims=1))
-
+        testDat[:qVar] = StatsBase.var(mapslices(sum, testDat[:tF], dims=2))
         testDat[:totFreq] = sum(testDat[:tF])
         testDat[:popSize] = sum(testDat[:tF][:, 2:end])
         testDat[:collapsed] = isapprox(sum(testDat[:tF][:, 1]), 1; atol=1E-6) 
