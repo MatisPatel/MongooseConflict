@@ -27,7 +27,7 @@ classifyStability <- Vectorize(function(stability){
   }
 })
 
-dat <- read_csv('../results/k02_run_full.csv') %>% 
+dat <- read_csv('../results/01072021_datwithvar.csv') %>% 
   filter(collapsed!=TRUE, err<1E-6) %>%
   # distinct(force, d, epsilon, stab, ratio, .keep_all=TRUE) %>%
   mutate(
@@ -118,7 +118,7 @@ plotDat <- dat %>%
     avgR = mean(avgR, na.rm=T),
     avgM = mean(avgMort, na.rm=T),
     qVal = mean(qVal, na.rm=T),
-    var = mean(varF)
+    var = mean(qVar, na.rm=T),
   ) %>%
   filter(epsilon%in%c(1,5,10))
 ggplot(plotDat) +

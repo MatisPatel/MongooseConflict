@@ -8,7 +8,7 @@ using DrWatson
 pprint(x) = round.(x, digits=4)
 
 world = Dict{Symbol, Any}(
-    :force => [0.03],
+    :force => [0.1],
     :itr =>0,
     :nGens => 1,
     :realGen =>  [@onlyif(:force != 0, 10000), @onlyif(:force==0, 1)],
@@ -17,12 +17,12 @@ world = Dict{Symbol, Any}(
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
     :stab => [5],
-    :ratio => 0.1,
+    :ratio => 0.5,
     :basem => 0.1,
     :k => 0.2,
     :b => 0.3,
     :d => [0.5],
-    :epsilon => 1,
+    :epsilon => 5,
     :multX => 0.1,
     :multY => 0.1,
     :fixed => [[1,2]],
@@ -1228,10 +1228,10 @@ function runSim(world)
         corrErr(world[:gradY], world[:tY]))
         println(i, " --- ",  err)
         # println("------ ", sum(world[:tF][:, 2:end]))
-        if err < 1E-8 
-            world[:force] = world[:force]/10
-        end
-        if err < -10
+        # if err < 1E-6 
+        #     world[:force] = world[:force]/10
+        # end
+        if err < 1E-6
             break
         end
     end

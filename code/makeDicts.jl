@@ -1,7 +1,7 @@
 using DrWatson 
 
 world = Dict{Symbol, Any}(
-    :force => [0.1, 0.0],
+    :force => [0.03, 0.0],
     :nGens => 1,
     :realGen =>  [@onlyif(:force != 0, 10000), @onlyif(:force==0, 10)],
     :q => 5,
