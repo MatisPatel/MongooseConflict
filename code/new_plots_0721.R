@@ -27,8 +27,8 @@ classifyStability <- Vectorize(function(stability){
   }
 })
 
-dat <- read_csv('../results/01072021_datwithvar.csv') %>% 
-  filter(collapsed!=TRUE, err<1E-6) %>%
+dat <- read_csv('../results/060721_force03and01.csv') %>% 
+  filter(collapsed!=TRUE) %>%
   # distinct(force, d, epsilon, stab, ratio, .keep_all=TRUE) %>%
   mutate(
     treatStab = classifyStability(stab),
@@ -44,7 +44,7 @@ plotDat <- dat %>%
     avgR = mean(avgR, na.rm=T)
   ) %>%
   filter(epsilon%in%c(1,5,10),
-         ratio%in%c(0.1, 0.4, 0.9),
+         ratio%in%c(0.1, 0.5, 0.9),
          stab%in%c(5, 10, 15))
 
 plotDat1 <- filter(plotDat, force!=0)
@@ -60,66 +60,83 @@ ggplot(plotDat1) +
   geom_path(aes(avgR, gX,  color=as.factor(stab), linetype=as.factor(ratio)), size=1) +
   my_theme
 
+#combined plot
+plotDat <- dat %>% 
+  filter(force!=0) %>%
+  group_by(d,epsilon, force, stab, ratio, fixed) %>%
+  summarise(
+    gX = mean(groupAvgX, na.rm=T),
+    gY = mean(groupAvgY, na.rm=T),
+    avgR = mean(avgR, na.rm=T)
+  ) %>%
+  gather("trait", "val", gX, gY) %>%
+  filter(epsilon==5,
+         ratio%in%c(0.1, 0.5, 0.9),
+         stab%in%c(5, 10, 15))
+ggplot(plotDat) +
+  facet_grid(~trait, scales="free") +
+  geom_path(aes(avgR, val,  color=as.factor(stab), linetype=as.factor(ratio)), size=1) +
+  my_theme
+ggsave("../graphs/traits_relatedness.pdf")
+
 #combined plot removing stability 
 plotDat <- dat %>% 
   filter(force!=0) %>%
-  group_by(d,epsilon, force, treatRat) %>%
+  group_by(d,epsilon, force, ratio, fixed) %>%
   summarise(
     gX = mean(groupAvgX, na.rm=T),
     gY = mean(groupAvgY, na.rm=T),
     avgR = mean(avgR, na.rm=T)
   ) %>%
   gather("trait", "val", gX, gY) %>%
-  filter(epsilon%in%c(1,5,10))
+  filter(epsilon==5)
 ggplot(plotDat) +
-  facet_grid(~epsilon, scales="free") +
-  geom_path(aes(avgR, val,  color=trait, linetype=treatRat), size=1) +
+  facet_grid(~trait, scales="free") +
+  geom_path(aes(avgR, val,  color=as.factor(ratio)), size=1) +
   my_theme
-
+ggsave("../graphs/traits_allRatios.pdf")
 # looking at stability and ratio
 plotDat <- dat %>% 
-  filter(force!=0) %>%
-  group_by(epsilon,force, treatRat, stab) %>%
+  filter(force==0.03) %>%
+  group_by(force, ratio,stab) %>%
   summarise(
     gX = mean(groupAvgX, na.rm=T),
-    gY = mean(groupAvgY, na.rm=T),
-    avgR = mean(avgR, na.rm=T),
+    gY = mean(groupAvgY, na.rm=T)
   ) %>%
-  gather("trait", "val", gX, gY) %>%
-  filter(epsilon%in%c(1,5,10))
+  gather("trait", "val", gX, gY) 
 ggplot(plotDat) +
-  facet_grid(~epsilon, scales="free") +
-  geom_path(aes(stab, val,  color=trait, linetype=treatRat), size=1) +
+  facet_grid(~trait, scales="free") +
+  geom_path(aes(ratio, val,  color=as.factor(stab)), size=1) +
   my_theme
+ggsave("../graphs/traits_ratio.pdf")
 
 plotDat <- dat %>% 
-  filter(force!=0) %>%
-  group_by(epsilon,force, ratio, stab) %>%
+  filter(force==0.03) %>%
+  group_by(force, stab, ratio) %>%
   summarise(
     gX = mean(groupAvgX, na.rm=T),
-    gY = mean(groupAvgY, na.rm=T),
-    avgR = mean(avgR, na.rm=T)
+    gY = mean(groupAvgY, na.rm=T)
   ) %>%
-  gather("trait", "val", gX, gY) %>%
-  filter(epsilon%in%c(1,5,10)) %>%
-  filter(stab%in%c(5, 10, 15))
+  gather("trait", "val", gX, gY) 
 ggplot(plotDat) +
-  facet_grid(~epsilon, scales="free") +
-  geom_path(aes(ratio, val,  color=trait, 
-                linetype=as.factor(stab)), size=1) +
+  facet_grid(~trait, scales="free") +
+  geom_path(aes(stab, val,  color=as.factor(ratio)), size=1) +
+  my_theme
+ggsave("../graphs/traits_stability.pdf")
+
+# encounter rate
+plotDat <- dat %>% 
+  filter(force==0.03) %>%
+  group_by(epsilon,force, ratio, d) %>%
+  summarise(
+    gX = mean(groupAvgX, na.rm=T),
+    gY = mean(groupAvgY, na.rm=T)
+  ) %>%
+  gather("trait", "val", gX, gY)%>%
+  filter(d==0.1)
+
+ggplot(plotDat) +
+  facet_grid(~trait, scales="free") +
+  geom_path(aes(epsilon, val,  color=as.factor(ratio)), size=1) +
   my_theme
 
-plotDat <- dat %>% 
-  filter(force!=0) %>%
-  group_by(epsilon,force, ratio, stab) %>%
-  summarise(
-    gX = mean(groupAvgX, na.rm=T),
-    gY = mean(groupAvgY, na.rm=T),
-    avgR = mean(avgR, na.rm=T),
-    avgM = mean(avgMort, na.rm=T),
-    qVal = mean(qVal, na.rm=T),
-    var = mean(qVar, na.rm=T),
-  ) %>%
-  filter(epsilon%in%c(1,5,10))
-ggplot(plotDat) +
-  geom_point(aes(ratio, var))
