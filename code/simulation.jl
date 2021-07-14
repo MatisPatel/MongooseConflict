@@ -12,14 +12,14 @@ world = Dict{Symbol, Any}(
     :itr =>0,
     :nGens => 1,
     :realGen =>  [@onlyif(:force != 0, 10000), @onlyif(:force==0, 1)],
-    :q => 5,
-    :n => 3,
+    :q => 3,
+    :n => 5,
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
     :stab => [5],
     :ratio => 0.5,
     :basem => 0.1,
-    :k => 0.2,
+    :k => 0.15,
     :b => 0.3,
     :d => [0.5],
     :epsilon => 5,
@@ -1231,7 +1231,7 @@ function runSim(world)
         # if err < 1E-6 
         #     world[:force] = world[:force]/10
         # end
-        if err < 1E-6
+        if err < 1E-5
             break
         end
     end
@@ -1256,12 +1256,12 @@ ls =[]
     cosm[:nGens] = cosm[:realGen]
     cosm[:gain] = cosm[:ratio]/cosm[:stab]
     cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
-    resWorld = produceSim(cosm)
+    global resWorld = produceSim(cosm)
     push!(ls, resWorld)
-    save(joinpath("..", "data", savename(world, "bson")), resWorld)
+    # save(joinpath("..", "data", savename(world, "bson")), resWorld)
 end
 
-save("worldList.bson", ls)
+# save("worldList.bson", ls)
 
 # using StatsBase
 # testDat = ls[1]

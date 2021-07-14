@@ -1,11 +1,11 @@
 using DrWatson 
 
 world = Dict{Symbol, Any}(
-    :force => [0.03, 0.0],
+    :force => [0.03],
     :nGens => 1,
     :realGen =>  [@onlyif(:force != 0, 10000), @onlyif(:force==0, 10)],
-    :q => 5,
-    :n => 3,
+    :q => 3,
+    :n => 5,
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
     :stab => collect(5:1:15),

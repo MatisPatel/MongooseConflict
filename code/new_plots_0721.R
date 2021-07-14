@@ -139,4 +139,237 @@ ggplot(plotDat) +
   facet_grid(~trait, scales="free") +
   geom_path(aes(epsilon, val,  color=as.factor(ratio)), size=1) +
   my_theme
+ggsave("../graphs/traits_encounterRate.pdf")
 
+plotDat <- dat %>% 
+  filter(force!=0) %>%
+  group_by(d, force, ratio, stab, fixed) %>%
+  summarise(
+    gX = mean(groupAvgX, na.rm=T),
+    gY = mean(groupAvgY, na.rm=T),
+    avgR = mean(avgR, na.rm=T),
+    avgM = mean(avgMort, na.rm=T)
+  ) %>%
+  gather("trait", "val", gX, gY) %>%
+  filter(
+         force==0.03,
+         ratio%in%c(0.1, 0.5, 0.9),
+         stab%in%c(5, 10, 15))
+ggplot(plotDat) +
+  facet_grid(~trait, scales="free") +
+  geom_path(aes(avgR, val,  color=as.factor(ratio), linetype=as.factor(stab)), size=1) +
+  my_theme
+ggsave("../graphs/traits_relatedness.pdf")
+
+plotDat <- dat %>% 
+  filter(force!=0) %>%
+  group_by(d, force, ratio, stab, fixed) %>%
+  summarise(
+    gX = mean(groupAvgX, na.rm=T),
+    gY = mean(groupAvgY, na.rm=T),
+    avgR = mean(avgR, na.rm=T),
+    avgM = mean(avgMort, na.rm=T)
+  ) %>%
+  gather("trait", "val", gX, gY) %>%
+  filter(
+    force==0.03,
+    ratio%in%c(0.1, 0.5, 0.9),
+    stab%in%c(5, 10, 15))
+ggplot(plotDat) +
+  facet_grid(ratio~trait, scales="free") +
+  geom_path(aes(val, avgM,  color=as.factor(ratio), linetype=as.factor(stab)), size=1) +
+  my_theme
+ggsave("../graphs/traits_mortality.pdf")
+
+plotDat <- dat %>% 
+  filter(force!=0) %>%
+  group_by(d, force, ratio, stab, fixed) %>%
+  summarise(
+    gX = mean(groupAvgX, na.rm=T),
+    gY = mean(groupAvgY, na.rm=T),
+    avgR = mean(avgR, na.rm=T),
+    avgM = mean(avgMort, na.rm=T)
+  ) %>%
+  # gather("trait", "val", gX, gY) %>%
+  filter(
+    force==0.03,
+    ratio%in%c(0.1, 0.5, 0.9),
+    stab%in%c(5, 10, 15))
+ggplot(plotDat) +
+  # facet_grid(~ratio, scales="free") +
+  geom_path(aes(avgR, avgM,  color=as.factor(ratio), linetype=as.factor(stab)), size=1) +
+  my_theme
+ggsave("../graphs/relatedness_mortality.pdf")
+
+plotDat <- dat %>% 
+  filter(force!=0) %>%
+  group_by(d, force, ratio, stab, fixed) %>%
+  summarise(
+    gX = mean(groupAvgX, na.rm=T),
+    gY = mean(groupAvgY, na.rm=T),
+    avgR = mean(avgR, na.rm=T),
+    avgM = mean(avgMort, na.rm=T)
+  ) %>%
+  # gather("trait", "val", gX, gY) %>%
+  filter(
+    force==0.03,
+    d%in%c(0.1, 0.5, 0.9),
+    stab%in%c(5, 10, 15))
+ggplot(plotDat) +
+  # facet_grid(~ratio, scales="free") +
+  geom_path(aes(ratio, avgM, colour=as.factor(stab),linetype=as.factor(d)), size=1) +
+  my_theme
+ggsave("../graphs/relatedness_mortality.pdf")
+
+plotDat <- dat %>%
+  gather("measure", "val", starts_with(c("tX", "tY"))) %>%
+  select(measure, val, d, epsilon, stab, ratio, force, fixed) %>%
+  extract(measure, c("measure", "tq", "tn"), "(\\w{2})(\\d)(\\d\\b)")%>%
+  group_by(d, epsilon, force, ratio, stab, fixed, measure, tq, tn) %>%
+  summarise(
+    meanVal = mean(val, na.rm = T)
+  ) %>%
+  mutate(tq = as.numeric(tq),
+         tn = as.numeric(tn)) %>%
+  filter(measure%in%c("tX","tY"), 
+         force==0.03,
+         ratio%in%c(0.1, 0.5, 0.9),
+         stab%in%c(5, 10, 15),
+         tn>0
+         ) %>%
+  ungroup()
+  
+ggplot(plotDat %>% filter(d==0.5, epsilon==5)) + 
+  facet_grid(tn~measure, scales="free") +
+  geom_path(aes(tq, meanVal, 
+                colour=as.factor(ratio),
+                linetype=as.factor(stab)),
+            size=1) +
+  my_theme
+ggsave("../graphs/quality_trait.pdf")
+
+plotDat <- dat %>% filter(force==0.03) %>%
+  gather("measure", "val", starts_with(c("tR"), ignore.case = FALSE)) %>%
+  select(avgMort, avgR, measure, val, d, epsilon, stab, ratio, force, fixed) %>%
+  extract(measure, c("measure", "tq", "tn"), "(\\w{2})(\\d)(\\d\\b)")%>%
+  group_by(d, epsilon, ratio, stab, fixed, measure, tq) %>%
+  summarise(
+    meanVal = mean(val, na.rm = T),
+  ) %>%
+  mutate(tq = as.numeric(tq),
+         tn = as.numeric(tn)) %>%
+  filter(force==0.03,
+         ratio%in%c(0.1, 0.5, 0.9),
+         stab%in%c(5, 10, 15),
+         tn>0
+  ) %>%
+  ungroup()
+
+ggplot(plotDat %>% filter(d==0.5, epsilon==5)) + 
+  facet_grid(~measure, scales="free") +
+  geom_path(aes(tq, meanVal, 
+                colour=as.factor(ratio),
+                linetype=as.factor(stab)),
+            size=1) +
+  my_theme
+ggsave("../graphs/quality_R.pdf")  
+
+plotDat <- dat %>% filter(force==0.03) %>%
+  gather("measure", "val", starts_with(c("M"), ignore.case = FALSE)) %>%
+  select(avgMort, avgR, measure, val, d, epsilon, stab, ratio, force, fixed) %>%
+  extract(measure, c("measure", "tq", "tn"), "(\\w{2})(\\d)(\\d\\b)")%>%
+  group_by(d, epsilon, ratio, stab, fixed, measure, tq, tn) %>%
+  summarise(
+    meanVal = mean(val, na.rm = T),
+  ) %>%
+  mutate(tq = as.numeric(tq), tn = as.numeric(tn)) %>%
+  filter(ratio%in%c(0.1, 0.5, 0.9),
+         stab%in%c(5, 10, 15),
+         measure%in%c("Mf"),
+         tn>0
+  ) %>%
+  ungroup()
+
+ggplot(plotDat %>% filter(d==0.5, epsilon==5)) + 
+  facet_grid(tn~measure, scales="free") +
+  geom_path(aes(tq, meanVal, 
+                colour=as.factor(ratio),
+                linetype=as.factor(stab)),
+            size=1) +
+  my_theme
+ggsave("../graphs/quality_Mort.pdf")  
+
+plotDat <- dat %>% filter(force==0.03) %>%
+  gather("measure", "val", starts_with(c("relW"), ignore.case = FALSE)) %>%
+  select(avgMort, avgR, measure, val, d, epsilon, stab, ratio, force, fixed) %>%
+  extract(measure, c("measure", "tq", "tn"), "(\\w{4})(\\d)(\\d\\b)")%>%
+  group_by(d, epsilon, ratio, stab, fixed, measure, tq, tn) %>%
+  summarise(
+    meanVal = mean(val, na.rm = T),
+  ) %>%
+  mutate(tq = as.numeric(tq), tn=as.numeric(tn)) %>%
+  filter(ratio%in%c(0.1, 0.5, 0.9),
+         stab%in%c(5, 10, 15),
+         tn>0
+         # measure%in%c("Mf")
+  ) %>%
+  ungroup()
+
+ggplot(plotDat %>% filter(d==0.5, epsilon==5)) + 
+  facet_grid(tn~measure, scales="free") +
+  geom_path(aes(tq, meanVal, 
+                colour=as.factor(ratio),
+                linetype=as.factor(stab)),
+            size=1) +
+  my_theme
+ggsave("../graphs/quality_fitness.pdf")  
+
+plotDat <- dat %>% filter(force==0.03) %>%
+  gather("measure", "val", starts_with(c("M"), ignore.case = FALSE)) %>%
+  select(avgMort, avgR, measure, val, d, epsilon, stab, ratio, force, fixed) %>%
+  extract(measure, c("measure", "tq", "tn"), "(\\w{2})(\\d)(\\d\\b)")%>%
+  group_by(d, epsilon, ratio, stab, fixed, measure, tn) %>%
+  summarise(
+    meanVal = mean(val, na.rm = T),
+  ) %>%
+  mutate(tq = as.numeric(tn)) %>%
+  filter(ratio%in%c(0.1, 0.5, 0.9),
+         stab%in%c(5, 10, 15),
+         measure%in%c("Mf"),
+         tq>0
+  ) %>%
+  ungroup()
+
+ggplot(plotDat %>% filter(d==0.5, epsilon==5)) + 
+  facet_grid(~measure, scales="free") +
+  geom_path(aes(tq, meanVal, 
+                colour=as.factor(ratio),
+                linetype=as.factor(stab)),
+            size=1) +
+  my_theme
+ggsave("../graphs/size_Mort.pdf") 
+
+plotDat <- dat %>% filter(force==0.03) %>%
+  gather("measure", "val", starts_with(c("relW"), ignore.case = FALSE)) %>%
+  select(avgMort, avgR, measure, val, d, epsilon, stab, ratio, force, fixed) %>%
+  extract(measure, c("measure", "tq", "tn"), "(\\w{4})(\\d)(\\d\\b)")%>%
+  group_by(d, epsilon, ratio, stab, fixed, measure, tn) %>%
+  summarise(
+    meanVal = mean(val, na.rm = T),
+  ) %>%
+  mutate(tq = as.numeric(tn)) %>%
+  filter(ratio%in%c(0.1, 0.5, 0.9),
+         stab%in%c(5, 10, 15),
+         tq>0
+         # measure%in%c("Mf")
+  ) %>%
+  ungroup()
+
+ggplot(plotDat %>% filter(d==0.5, epsilon==5)) + 
+  facet_grid(~measure, scales="free") +
+  geom_path(aes(tq, meanVal, 
+                colour=as.factor(ratio),
+                linetype=as.factor(stab)),
+            size=1) +
+  my_theme
+ggsave("../graphs/size_fitness.pdf") 
