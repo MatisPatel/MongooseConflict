@@ -4,6 +4,7 @@
 *.log
 *.png 
 *.pdf
+*.csv
 
 #R
 # History files
