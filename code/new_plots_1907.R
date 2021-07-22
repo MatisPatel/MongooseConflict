@@ -27,15 +27,15 @@ classifyStability <- Vectorize(function(stability){
   }
 })
 
-dat <- read_csv('../results/060721_force03and01.csv') %>% 
+dat <- read_csv('../results/190721_fullrange.csv') %>% 
   filter(collapsed!=TRUE) %>%
   # distinct(force, d, epsilon, stab, ratio, .keep_all=TRUE) %>%
   mutate(
     treatStab = classifyStability(stab),
     treatRat = classifyRatio(ratio)
-  )
+  ) %>% filter(q==5, n==3)
 
-plotDat <- dat %>% 
+plotDat <- dat %>%
   # filter(force==0|(force!=0&err<1E-6)) %>%
   group_by(d,epsilon, force, stab, ratio, fixed) %>%
   summarise(
@@ -61,7 +61,7 @@ ggplot(plotDat1) +
   my_theme
 
 #combined plot
-plotDat <- dat %>% 
+plotDat <- dat %>%  
   filter(force!=0) %>%
   group_by(d,epsilon, force, stab, ratio, fixed) %>%
   summarise(
@@ -98,7 +98,7 @@ ggsave("../graphs/traits_allRatios.pdf")
 # looking at stability and ratio
 plotDat <- dat %>% 
   filter(force==0.03) %>%
-  group_by(force, ratio) %>%
+  group_by(force, ratio,stab) %>%
   summarise(
     gX = mean(groupAvgX, na.rm=T),
     gY = mean(groupAvgY, na.rm=T)
@@ -106,9 +106,9 @@ plotDat <- dat %>%
   gather("trait", "val", gX, gY) 
 ggplot(plotDat) +
   facet_grid(~trait, scales="free") +
-  geom_path(aes(ratio, val), size=1) +
+  geom_path(aes(ratio, val,  color=as.factor(stab)), size=1) +
   my_theme
-ggsave("../graphs/traits_ratio.png")
+ggsave("../graphs/traits_ratio.pdf")
 
 plotDat <- dat %>% 
   filter(force==0.03) %>%
@@ -152,9 +152,9 @@ plotDat <- dat %>%
   ) %>%
   gather("trait", "val", gX, gY) %>%
   filter(
-         force==0.03,
-         ratio%in%c(0.1, 0.5, 0.9),
-         stab%in%c(5, 10, 15))
+    force==0.03,
+    ratio%in%c(0.1, 0.5, 0.9),
+    stab%in%c(5, 10, 15))
 ggplot(plotDat) +
   facet_grid(~trait, scales="free") +
   geom_path(aes(avgR, val,  color=as.factor(ratio), linetype=as.factor(stab)), size=1) +
@@ -225,7 +225,7 @@ plotDat <- dat %>%
   gather("measure", "val", starts_with(c("tX", "tY"))) %>%
   select(measure, val, d, epsilon, stab, ratio, force, fixed) %>%
   extract(measure, c("measure", "tq", "tn"), "(\\w{2})(\\d)(\\d\\b)")%>%
-  group_by(d, epsilon, force, ratio, fixed, measure, tq, tn) %>%
+  group_by(d, epsilon, force, ratio, stab, fixed, measure, tq, tn) %>%
   summarise(
     meanVal = mean(val, na.rm = T)
   ) %>%
@@ -233,19 +233,20 @@ plotDat <- dat %>%
          tn = as.numeric(tn)) %>%
   filter(measure%in%c("tX","tY"), 
          force==0.03,
-         ratio%in%c(0.1, 0.5, 0.9),
-         # stab%in%c(5, 10, 15),
-         tn==2
-         ) %>%
+         # ratio%in%c(0.1, 0.5, 0.9),
+         stab%in%c(5, 10, 15),
+         tn>0
+  ) %>%
   ungroup()
-  
+
 ggplot(plotDat %>% filter(d==0.5, epsilon==5)) + 
-  facet_grid(~measure, scales="free") +
+  facet_grid(tn~measure, scales="free") +
   geom_path(aes(tq, meanVal, 
-                colour=as.factor(ratio)),
-            size=2) +
+                colour=as.factor(ratio),
+                linetype=as.factor(stab)),
+            size=1) +
   my_theme
-ggsave("../graphs/quality_trait.png")
+ggsave("../graphs/quality_trait.pdf")
 
 ggplot(plotDat%>%filter(stab==10, 
                         d==0.5, 
@@ -253,7 +254,7 @@ ggplot(plotDat%>%filter(stab==10,
                         tn==1)) + 
   geom_tile(aes(tq, ratio, fill=meanVal)) + 
   scale_fill_viridis_c()
-  
+
 
 plotDat <- dat %>% filter(force==0.03) %>%
   gather("measure", "val", starts_with(c("tR"), ignore.case = FALSE)) %>%
@@ -514,3 +515,57 @@ ggplot(plotDat) +
             size=1) +
   my_theme
 ggsave("../graphs/size_fitness2.pdf") 
+
+## Plots for 4x4 
+dat3 <- read_csv('../results/190721_fullrange.csv') %>% 
+  filter(n==4, q==4)
+
+plotDat <- dat3 %>%
+  gather("measure", "val", starts_with(c("tX", "tY"))) %>%
+  select(measure, val, d, epsilon, stab, ratio, force, fixed) %>%
+  extract(measure, c("measure", "tq", "tn"), "(\\w{2})(\\d)(\\d\\b)")%>%
+  group_by(d, epsilon, force, ratio, stab, fixed, measure, tq, tn) %>%
+  summarise(
+    meanVal = mean(val, na.rm = T)
+  ) %>%
+  mutate(tq = as.numeric(tq),
+         tn = as.numeric(tn)) %>%
+  filter(measure%in%c("tX","tY"), 
+         force==0.03,
+         # ratio%in%c(0.1, 0.5, 0.9),
+         stab%in%c(5, 10, 15),
+         tn>0
+  ) %>%
+  ungroup()
+
+ggplot(plotDat %>% filter(d==0.5, epsilon==5)) + 
+  facet_grid(tn~measure, scales="free") +
+  geom_path(aes(tq, meanVal, 
+                colour=as.factor(ratio),
+                linetype=as.factor(stab)),
+            size=1) +
+  my_theme
+
+plotDat <- dat3 %>%
+  gather("measure", "val", starts_with(c("tX", "tY"))) %>%
+  select(measure, val, d, epsilon, stab, ratio, force, fixed) %>%
+  extract(measure, c("measure", "tq", "tn"), "(\\w{2})(\\d)(\\d\\b)")%>%
+  group_by(d, epsilon, force, ratio, fixed, measure, tq, tn) %>%
+  summarise(
+    meanVal = mean(val, na.rm = T)
+  ) %>%
+  mutate(tq = as.numeric(tq),
+         tn = as.numeric(tn)) %>%
+  filter(measure%in%c("tX","tY"), 
+         force==0.03,
+         # ratio%in%c(0.1, 0.5, 0.9),
+         tn>0
+  ) %>%
+  ungroup()
+
+ggplot(plotDat %>% filter(d==0.5, epsilon==5)) + 
+  facet_grid(~ratio, scales="free") +
+  geom_tile(aes(tq, tn, 
+                fill=meanVal),
+            size=1) +
+  my_theme
