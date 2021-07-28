@@ -1,9 +1,10 @@
 using DrWatson 
 
 world = Dict{Symbol, Any}(
-    :force => [0.0, 0.03],
+    :force => [0.03],
     :nGens => 1,
-    :realGen =>  [@onlyif(:force != 0, 10000), @onlyif(:force==0, 10)],
+    :realGen => 10000,
+    # :realGen =>  [@onlyif(:force != 0, 10000), @onlyif(:force==0, 10)],
     :worldSize => [(3, 5), (5, 3), (4, 4)],
     # :q => 5,
     # :n => 3,
@@ -36,10 +37,13 @@ world = Dict{Symbol, Any}(
 
 println("Making dict list")
 worldSet = dict_list(world) 
-println("removing past files")
-foreach(rm, joinpath.("tempDicts", filter(endswith(".bson"), readdir("tempDicts"))))
+# println("removing past files")
+# foreach(rm, joinpath.("tempDicts", filter(endswith(".bson"), readdir("tempDicts"))))
 println("save new dicts")
+println(length(worldSet))
 for i in 1:length(worldSet)
+    if i%100 == 0
+        println(i)
+    end
     save(joinpath("tempDicts", string(i, ".bson")), worldSet[i])
 end 
-println(length(worldSet))
