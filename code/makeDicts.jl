@@ -34,12 +34,12 @@ world = Dict{Symbol, Any}(
     :temp => Array{Any, 2}
 )
 
+println("Making dict list")
 worldSet = dict_list(world) 
-
+println("removing past files")
 foreach(rm, joinpath.("tempDicts", filter(endswith(".bson"), readdir("tempDicts"))))
-
+println("save new dicts")
 for i in 1:length(worldSet)
     save(joinpath("tempDicts", string(i, ".bson")), worldSet[i])
 end 
-
 println(length(worldSet))
