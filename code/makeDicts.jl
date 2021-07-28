@@ -34,7 +34,7 @@ world = Dict{Symbol, Any}(
     :fixed => [[1, 2]],
     :temp => Array{Any, 2}
 )
-
+dict_list(Dict(a=>0:0.1:10, b=>0:1:5))
 println("Making dict list")
 worldSet = dict_list(world) 
 # println("removing past files")
