@@ -30,7 +30,7 @@ dat <- read_csv('../results/190721_fullrange.csv') %>%
 ## X and Y with Relatedness
 
 ```{r , include=FALSE}
-plotDat <- dat %>% filter(n==3&q==5) %>%
+plotDat <- dat %>% filter(n==3&q==5) %>% 
   # filter(force==0|(force!=0&err<1E-6)) %>%
   group_by(d, force, ratio, fixed) %>%
   summarise(
@@ -138,10 +138,11 @@ td <- dat %>%
 plotDat <- td %>% filter(d!=0.9, d!=0.1) %>%
   gather("Trait", "val", tXi, tYi) %>%
   select(Trait, val, d, epsilon, 
-         stab, ratio, force, fixed, Size, Quality) %>%
-  group_by(force, ratio, fixed, Trait, Quality) %>%
+         stab, ratio, force, fixed, Size, Quality, normF) %>%
+  group_by(force, ratio, fixed, Trait, Quality, epsilon) %>%
   summarise(
-    Investment = mean(val, na.rm = T)
+    Investment = mean(val, na.rm = T),
+    freq = sum(normF, na.rm=T)
   ) %>%
   mutate(
          Harshness = as.factor(1-ratio)) %>%
@@ -164,7 +165,15 @@ ggplot(plotDat) +
             size=1) +
   my_theme
 ```
-
+```{r}
+ggplot(plotDat%>%filter(Harshness==0.5)) + 
+  facet_grid(~epsilon)+
+  geom_path(aes(Quality, freq, 
+                linetype=Harshness),
+            size=1) +
+  my_theme
+ggsave("freqPlot.pdf", width=30, height=8, units="in")
+```
 
 ## Effect of Size level on traits
 ```{r}

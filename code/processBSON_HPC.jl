@@ -32,9 +32,9 @@ for i in 1:length(files)
         testDat[:tXi] = (testDat[:tX][:, 2:end] .* normF .*  nArray)./ sum(normF .* nArray)
         testDat[:tYi] = (testDat[:tY][:, 2:end] .* normF .*  nArray)./ sum(normF .* nArray)
         testDat[:groupAvgX] = sum(testDat[:tXw])
-        testDat[:indAvgX] = sum(testDat[:tXw] .*  nArray)/ sum(normF .* nArray)
+        testDat[:indAvgX] = sum(testDat[tXi])
         testDat[:groupAvgY] = sum(testDat[:tYw])
-        testDat[:indAvgY] = sum(testDat[:tYw] .*  nArray)/ sum(normF .* nArray)
+        testDat[:indAvgY] = sum(testDat[tYi])
 
         AnArray = nArray[:, 1]
         testDat[:AtXw] = testDat[:tXw][:, 1:1]
@@ -54,6 +54,8 @@ for i in 1:length(files)
 
         testDat[:avgMort] = mean(mortFun.(nArray, testDat[:tX][:,2:end], testDat[:tY][:,2:end], testDat[:basem], testDat[:multX], testDat[:multY]))
         testDat[:relW] = testDat[:tW]./mean(testDat[:tW])
+        testDat[:rWi] = (testDat[:relW][:, 2:end] .* normF .*  nArray)./ sum(normF .* nArray)
+        testDat[:mWi] = mean(testDat[:rWi])
         testDat[:meanFit] = mean(testDat[:relW][:, 2:end])
         testDat[:fit1] = mean(testDat[:relW][:, 2])
         testDat[:fit2] = mean(testDat[:relW][:, 3])

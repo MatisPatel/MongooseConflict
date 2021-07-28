@@ -14,7 +14,7 @@ world = Dict{Symbol, Any}(
     # :ratio => collect(0.1:0.1:0.9),
     :ratio => collect(Set(vcat(0.1, collect(0.2:0.2:0.8), 0.9, collect(0.3:0.025:0.7)))),
     :basem => 0.1,
-    :k => 0.2,
+    :k => 0.15,
     :b => 0.3,
     # :d => 0.5,
     :d => collect(0.1:0.1:0.9),    
@@ -22,7 +22,7 @@ world = Dict{Symbol, Any}(
     #     @onlyif(:epsilon in (1, 5, 10), 
     #     [0.2, 0.3, 0.4, 0.6, 0.7, 0.8])...
     # ],
-    :epsilon => [0.5, 1, 2],
+    :epsilon => [0.125, 0.25, 0.5, 1, 2, 4, 8],
     # :epsilon => collect(1:1:10),
     # :epsilon => [1, 5, 10, 
     #     @onlyif(:d in (0.1, 0.5, 0.9), 
