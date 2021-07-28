@@ -6,6 +6,9 @@ using DrWatson
 @variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
 
 world = load(joinpath("/home", "mmp38", "mongooseConflict", "code", "tempDicts", string(ENV["SLURM_ARRAY_TASK_ID"], ".bson")))
+world[:q] = world[:worldSize][1] 
+world[:n] = world[:worldSize][2] 
+world[:size] = world[:n]*world[:q] 
 
 @variables begin 
     F[1:world[:q], 1:world[:n]]
@@ -744,6 +747,7 @@ function step(world, callFun, callFunW, callFunR,
 end
 
 function runSim(world)
+    cosm = deepcopy(world)
     world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
     world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
 
@@ -808,6 +812,7 @@ function runSim(world)
     grads, directSel, indirectSel = makeSelGrads(wSysSelec, modelM, modelP, modelC, modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, world);
 
     for i in 1:world[:nGens]
+        world[:itr] = i
         world = step(world, callFun, callFunW, callFunR,
             grads,
             modelM, modelP, modelC, modelMl, modelPl, modelCl
@@ -816,12 +821,60 @@ function runSim(world)
         corrErr(world[:gradY], world[:tY]))
         println(i, " --- ",  err)
         world[:err] = err
-        if err < 1E-7
+        if err < 1E-8
             world[:itr] = i
             break
         end
+        if i%1000 == 0
+            save(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), world)
+        end
     end
     return world
+end
+
+function testRatios!(resWorld)
+    for newRatio in 0.1:0.05:0.9
+        newWorld = deepcopy(resWorld)
+        newWorld[:ratio] = newRatio 
+        newWorld[:force] = 0.0 
+        newWorld[:gain] = newWorld[:ratio]/newWorld[:stab]
+        newWorld[:loss] = (1-newWorld[:ratio])/newWorld[:stab]
+        newWorld[:nGens] = 1 
+        newWorld[:tF] = reshape(
+            repeat([1/newWorld[:size]], newWorld[:size]), (newWorld[:q], newWorld[:n])
+        )
+        newWorld[:tR] = reshape(
+            repeat(
+                hcat([0 0], [1/p for p in 2:(newWorld[:n]-1)]'), 
+                newWorld[:q]
+            ), 
+            (newWorld[:q], newWorld[:n])
+        )
+
+        modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, modelM, modelP, modelC = makeModelExpr(newWorld)
+
+        newWorld = updateMPC(newWorld, modelM, modelP, modelC, modelMl, modelPl, modelCl)
+
+        # create F system
+        fSys = makeFsys(F, M, P, C, d, newWorld)
+        funF = ModelingToolkit.build_function(
+            fSys, F, M, P, C, d, epsilon;
+            expression=Val{false}
+            );
+        callFun = eval(funF[2]);
+        newWorld[:itr] = -1
+        fFun(Fx, x) = callFun(
+            reshape(Fx, (newWorld[:q], newWorld[:n])), 
+            reshape(x, (newWorld[:q], newWorld[:n])),  
+            newWorld[:M], 
+            newWorld[:P], 
+            newWorld[:C], 
+            newWorld[:d], 
+            newWorld[:epsilon]
+            )
+        solF = genSolF(fFun, newWorld)
+        resWorld[Symbol(replace(string("rF","_", newWorld[:ratio]), "."=>"_"))] = solF.zero
+    end
 end
 
 function produceSim(world)
@@ -852,5 +905,6 @@ end
 
     # for cosm in worldSet
     resWorld = produceSim(cosm)
-    save(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), resWorld)
+    finalWorld = testRatios!(resWorld)
+    save(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), finalWorld)
 end

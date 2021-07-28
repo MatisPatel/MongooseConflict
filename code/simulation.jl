@@ -8,18 +8,19 @@ using DrWatson
 pprint(x) = round.(x, digits=4)
 
 world = Dict{Symbol, Any}(
-    :force => [0.03],
+    :force => [0.1],
     :itr =>0,
     :nGens => 1,
     :realGen =>  [@onlyif(:force != 0, 10000), @onlyif(:force==0, 1)],
-    :q => 5,
-    :n => 5,
+    :q => 4,
+    :n => 4,
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
     :stab => [5],
-    :ratio => 0.5,
+    # :ratio => collect(0.1:0.1:0.9),
+    :ratio => [0.5],
     :basem => 0.1,
-    :k => 0.15,
+    :k => 0.1,
     :b => 0.3,
     :d => [0.5],
     :epsilon => 5,
@@ -659,6 +660,7 @@ function makeModelExpr(world)
     modelCl = makeLocalModelC(Yl, world)
 
     atEqXY = matSub(Xf .=> X, Xl .=> X, Yf .=> Y, Yl .=> Y)
+    # atEqXY = Dict([Xf .=> X, Xl .=> X, Yf .=> Y, Yl .=> Y])
     modelM = substitute.(modelMf, atEqXY)
     modelP = substitute.(modelPf, atEqXY)
     modelC = substitute.(modelCf, atEqXY)
@@ -1135,8 +1137,8 @@ function step(world, callFun, callFunW, callFunR,
 end
 
 function runSim(world)
-    world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-    world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+    world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-10))
+    world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-10))
     world[:tTr] = simpleTrans(world)
 
     if world[:solver] == :adam 
@@ -1231,7 +1233,12 @@ function runSim(world)
         # if err < 1E-6 
         #     world[:force] = world[:force]/10
         # end
-        if err < 1E-5
+        if err < 1E-8
+            EqVals = matSub(X.=>world[:tX], Y.=>world[:tY], Xf.=>world[:tX], Yf.=>world[:tY], Xl.=>world[:tX], Yl.=>world[:tY], F.=>world[:tF], W.=>world[:tW], R.=>world[:tR], epsilon.=>[world[:epsilon]], d.=>[world[:d]])
+            world[:gradXdir] = substitute.(directSel[1], EqVals)
+            world[:gradYdir] = substitute.(directSel[2], EqVals)
+            world[:gradXind] = substitute.(indirectSel[1], EqVals)
+            world[:gradYind] = substitute.(indirectSel[2], EqVals)
             break
         end
     end
@@ -1247,20 +1254,174 @@ function produceSim(world)
     return res
 end
 
+function testRatios!(resWorld)
+    for newRatio in 0.1:0.05:0.9
+        newWorld = deepcopy(resWorld)
+        newWorld[:ratio] = newRatio 
+        newWorld[:force] = 0.0 
+        newWorld[:gain] = newWorld[:ratio]/newWorld[:stab]
+        newWorld[:loss] = (1-newWorld[:ratio])/newWorld[:stab]
+        newWorld[:nGens] = 1 
+        newWorld[:tF] = reshape(
+            repeat([1/newWorld[:size]], newWorld[:size]), (newWorld[:q], newWorld[:n])
+        )
+        newWorld[:tR] = reshape(
+            repeat(
+                hcat([0 0], [1/p for p in 2:(newWorld[:n]-1)]'), 
+                newWorld[:q]
+            ), 
+            (newWorld[:q], newWorld[:n])
+        )
+
+        modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, modelM, modelP, modelC = makeModelExpr(newWorld)
+
+        newWorld = updateMPC(newWorld, modelM, modelP, modelC, modelMl, modelPl, modelCl)
+
+        # create F system
+        fSys = makeFsys(F, M, P, C, d, newWorld)
+        funF = ModelingToolkit.build_function(
+            fSys, F, M, P, C, d, epsilon;
+            expression=Val{false}
+            );
+        callFun = eval(funF[2]);
+        newWorld[:itr] = -1
+        fFun(Fx, x) = callFun(
+            reshape(Fx, (newWorld[:q], newWorld[:n])), 
+            reshape(x, (newWorld[:q], newWorld[:n])),  
+            newWorld[:M], 
+            newWorld[:P], 
+            newWorld[:C], 
+            newWorld[:d], 
+            newWorld[:epsilon]
+            )
+        solF = genSolF(fFun, newWorld)
+        resWorld[Symbol(replace(string("rF","_", newWorld[:ratio]), "."=>"_"))] = solF.zero
+    end
+    return resWorld
+end
+
 # w1 = produceSim(worldSet[1])
 
 # world[:nGens] = world[:realGen]
 # worldSet = dict_list(world)
 ls =[]
-@time for cosm in worldSet
+for cosm in worldSet
     cosm[:nGens] = cosm[:realGen]
     cosm[:gain] = cosm[:ratio]/cosm[:stab]
     cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
-    global resWorld = produceSim(cosm)
-    push!(ls, resWorld)
+    @time resWorld = produceSim(cosm)
+    global finalWorld = testRatios!(resWorld)
+    push!(ls, finalWorld)
     # save(joinpath("..", "data", savename(world, "bson")), resWorld)
 end
 
+using StatsBase
+using Plots 
+gr()
+
+nArray = repeat([i for i in 1:(world[:n]-1)]', world[:q])
+baseF = []
+baseX = []
+baseY = []
+baseM = []
+rbase = []
+for ww in ls 
+    tF = ww[:tF]
+    iX = mean((tF[:, 2:end] .* ww[:tX][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
+    iY = mean((tF[:, 2:end] .* ww[:tY][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
+    iM = mean((tF[:, 2:end] .* ww[:M][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
+    push!(baseF, sum(tF[:, 2:end].*nArray))
+    push!(baseX, iX)
+    push!(baseY, iY)
+    push!(baseM, iM)
+    push!(rbase, ww[:ratio])
+end
+
+
+plt = plot(rbase, baseF.-baseF, label="evolved", title="Population Size", legend= :outerbottom, size=(1800, 1000));
+for i in 1:length(ls)
+    ww = ls[i]
+    Flist = [] 
+    Xlist = []
+    Ylist = []
+    for r in world[:ratio]
+        tF = ww[Symbol(replace(string("rF","_", r), "."=>"_"))]
+        iX = mean(tF[:, 2:end] .* ww[:tX][:, 2:end])
+        iY = mean(tF[:, 2:end] .* ww[:tY][:, 2:end])
+        push!(Flist, sum(tF[:, 2:end].*nArray))
+        push!(Xlist, iX)
+        push!(Ylist, iY)
+    end
+    plt = plot!(plt, world[:ratio], Flist.-baseF, label=string("peturbed ", rbase[i]));
+    plt = scatter!(plt, [rbase[i]], [0], label="");
+end
+@show plt
+savefig(plt, "../graphs/populationSize_peturbed.pdf")
+
+plt = plot(rbase, baseX.-baseX, label="evolved", title="Cooperation Level", legend=:outerbottom, size=(1800, 1000));
+for i in 1:length(ls)
+    ww = ls[i]
+    Flist = [] 
+    Xlist = []
+    Ylist = []
+    for r in world[:ratio]
+        tF = ww[Symbol(replace(string("rF","_", r), "."=>"_"))]
+        iX = mean((tF[:, 2:end] .* ww[:tX][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
+        iY = mean(tF[:, 2:end] .* ww[:tY][:, 2:end])
+        push!(Flist, sum(tF[:, 2:end].*nArray))
+        push!(Xlist, iX)
+        push!(Ylist, iY)
+    end
+    plt = plot!(plt, world[:ratio], Xlist.-baseX, label=string("peturbed ", rbase[i]));
+    plt = scatter!(plt, [rbase[i]], [0], label="");
+end
+@show plt
+savefig(plt, "../graphs/cooperation_peturbed.png")
+
+plt = plot(rbase, baseY.-baseY, label="evolved", title="Conflict Level", legend=:outerbottom, size=(1800, 1000));
+for i in 1:length(ls)
+    ww = ls[i]
+    Flist = [] 
+    Xlist = []
+    Ylist = []
+    for r in world[:ratio]
+        tF = ww[Symbol(replace(string("rF","_", r), "."=>"_"))]
+        iX = mean(tF[:, 2:end] .* ww[:tX][:, 2:end])
+        iY = mean((tF[:, 2:end] .* ww[:tY][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
+        push!(Flist, sum(tF[:, 2:end].*nArray))
+        push!(Xlist, iX)
+        push!(Ylist, iY)
+    end
+    plt = plot!(plt, world[:ratio], Ylist.-baseY, label=string("peturbed ", rbase[i]));
+    plt = scatter!(plt, [rbase[i]], [0], label="");
+end
+@show plt
+savefig(plt, "../graphs/conflict_peturbed.png")
+
+plt = plot(rbase, baseM.-baseM, label="evolved", title="Mortality Level", legend=:outerbottom, size=(1800, 1000));
+for i in 1:length(ls)
+    ww = ls[i]
+    Flist = [] 
+    Xlist = []
+    Ylist = []
+    Mlist = []
+    for r in world[:ratio]
+        tF = ww[Symbol(replace(string("rF","_", r), "."=>"_"))]
+        iX = mean(tF[:, 2:end] .* ww[:tX][:, 2:end])
+        iY = mean(tF[:, 2:end] .* ww[:tY][:, 2:end])
+        iM = mean((tF[:, 2:end] .* ww[:M][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
+        push!(Flist, sum(tF[:, 2:end].*nArray))
+        push!(Xlist, iX)
+        push!(Ylist, iY)
+        push!(Mlist, iM)
+    end
+    plt = plot!(plt, world[:ratio], Mlist.-baseM, label=string("peturbed ", rbase[i]));
+    plt = scatter!(plt, [rbase[i]], [0], label="");
+end
+@show plt
+savefig(plt, "../graphs/mortality_peturbed.png")
+
+# gradX = substitute.(grads[1], matSub(X.=>world[:tX], Y.=>world[:tY], F.=>world[:tF], W.=>world[:tW], R.=>world[:tR]))
 # save("worldList.bson", ls)
 
 # using StatsBase

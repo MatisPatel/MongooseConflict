@@ -39,8 +39,8 @@ plotDat <- dat %>%
   # filter(force==0|(force!=0&err<1E-6)) %>%
   group_by(d,epsilon, force, stab, ratio, fixed) %>%
   summarise(
-    gX = mean(groupAvgX, na.rm=T),
-    gY = mean(groupAvgY, na.rm=T),
+    gX = mean(indAvgX, na.rm=T),
+    gY = mean(indAvgY, na.rm=T),
     avgR = mean(avgR, na.rm=T)
   ) %>%
   filter(epsilon%in%c(1,5,10),
@@ -65,8 +65,8 @@ plotDat <- dat %>%
   filter(force!=0) %>%
   group_by(d,epsilon, force, stab, ratio, fixed) %>%
   summarise(
-    gX = mean(groupAvgX, na.rm=T),
-    gY = mean(groupAvgY, na.rm=T),
+    gX = mean(indAvgX, na.rm=T),
+    gY = mean(indAvgY, na.rm=T),
     avgR = mean(avgR, na.rm=T)
   ) %>%
   gather("trait", "val", gX, gY) %>%
@@ -84,8 +84,8 @@ plotDat <- dat %>%
   filter(force!=0) %>%
   group_by(d,epsilon, force, ratio, fixed) %>%
   summarise(
-    gX = mean(groupAvgX, na.rm=T),
-    gY = mean(groupAvgY, na.rm=T),
+    gX = mean(indAvgX, na.rm=T),
+    gY = mean(indAvgY, na.rm=T),
     avgR = mean(avgR, na.rm=T)
   ) %>%
   gather("trait", "val", gX, gY) %>%
@@ -100,8 +100,8 @@ plotDat <- dat %>%
   filter(force==0.03) %>%
   group_by(force, ratio,stab) %>%
   summarise(
-    gX = mean(groupAvgX, na.rm=T),
-    gY = mean(groupAvgY, na.rm=T)
+    gX = mean(indAvgX, na.rm=T),
+    gY = mean(indAvgY, na.rm=T)
   ) %>%
   gather("trait", "val", gX, gY) 
 ggplot(plotDat) +
@@ -114,8 +114,8 @@ plotDat <- dat %>%
   filter(force==0.03) %>%
   group_by(force, stab, ratio) %>%
   summarise(
-    gX = mean(groupAvgX, na.rm=T),
-    gY = mean(groupAvgY, na.rm=T)
+    gX = mean(indAvgX, na.rm=T),
+    gY = mean(indAvgY, na.rm=T)
   ) %>%
   gather("trait", "val", gX, gY) 
 ggplot(plotDat) +
@@ -129,8 +129,8 @@ plotDat <- dat %>%
   filter(force==0.03) %>%
   group_by(epsilon,force, ratio, d) %>%
   summarise(
-    gX = mean(groupAvgX, na.rm=T),
-    gY = mean(groupAvgY, na.rm=T)
+    gX = mean(indAvgX, na.rm=T),
+    gY = mean(indAvgY, na.rm=T)
   ) %>%
   gather("trait", "val", gX, gY)%>%
   filter(d==0.1)
@@ -145,8 +145,8 @@ plotDat <- dat %>%
   filter(force!=0) %>%
   group_by(d, force, ratio, stab, fixed) %>%
   summarise(
-    gX = mean(groupAvgX, na.rm=T),
-    gY = mean(groupAvgY, na.rm=T),
+    gX = mean(indAvgX, na.rm=T),
+    gY = mean(indAvgY, na.rm=T),
     avgR = mean(avgR, na.rm=T),
     avgM = mean(avgMort, na.rm=T)
   ) %>%
@@ -165,8 +165,8 @@ plotDat <- dat %>%
   filter(force!=0) %>%
   group_by(d, force, ratio, stab, fixed) %>%
   summarise(
-    gX = mean(groupAvgX, na.rm=T),
-    gY = mean(groupAvgY, na.rm=T),
+    gX = mean(indAvgX, na.rm=T),
+    gY = mean(indAvgY, na.rm=T),
     avgR = mean(avgR, na.rm=T),
     avgM = mean(avgMort, na.rm=T)
   ) %>%
@@ -185,8 +185,8 @@ plotDat <- dat %>%
   filter(force!=0) %>%
   group_by(d, force, ratio, stab, fixed) %>%
   summarise(
-    gX = mean(groupAvgX, na.rm=T),
-    gY = mean(groupAvgY, na.rm=T),
+    gX = mean(indAvgX, na.rm=T),
+    gY = mean(indAvgY, na.rm=T),
     avgR = mean(avgR, na.rm=T),
     avgM = mean(avgMort, na.rm=T)
   ) %>%
@@ -205,8 +205,8 @@ plotDat <- dat %>%
   filter(force!=0) %>%
   group_by(d, force, ratio, stab, fixed) %>%
   summarise(
-    gX = mean(groupAvgX, na.rm=T),
-    gY = mean(groupAvgY, na.rm=T),
+    gX = mean(indAvgX, na.rm=T),
+    gY = mean(indAvgY, na.rm=T),
     avgR = mean(avgR, na.rm=T),
     avgM = mean(avgMort, na.rm=T)
   ) %>%
@@ -517,20 +517,20 @@ ggplot(plotDat) +
 ggsave("../graphs/size_fitness2.pdf") 
 
 ## Plots for 4x4 
-dat3 <- read_csv('../results/190721_fullrange.csv') %>% 
-  filter(n==4, q==4)
+dat3 <- read_csv('../results/2307_full55.csv') %>% 
+  filter(n==5, q==5)
 
 plotDat <- dat3 %>%
-  gather("measure", "val", starts_with(c("tX", "tY"))) %>%
+  gather("measure", "val", starts_with(c("tXw", "tYw"))) %>%
   select(measure, val, d, epsilon, stab, ratio, force, fixed) %>%
-  extract(measure, c("measure", "tq", "tn"), "(\\w{2})(\\d)(\\d\\b)")%>%
+  extract(measure, c("measure", "tq", "tn"), "(\\w{3})(\\d)(\\d\\b)")%>%
   group_by(d, epsilon, force, ratio, stab, fixed, measure, tq, tn) %>%
   summarise(
     meanVal = mean(val, na.rm = T)
   ) %>%
   mutate(tq = as.numeric(tq),
          tn = as.numeric(tn)) %>%
-  filter(measure%in%c("tX","tY"), 
+  filter(measure%in%c("tXw","tYw"), 
          force==0.03,
          # ratio%in%c(0.1, 0.5, 0.9),
          stab%in%c(5, 10, 15),
@@ -546,26 +546,84 @@ ggplot(plotDat %>% filter(d==0.5, epsilon==5)) +
             size=1) +
   my_theme
 
-plotDat <- dat3 %>%
-  gather("measure", "val", starts_with(c("tX", "tY"))) %>%
+plotDat <- dat3 %>% 
+  gather("measure", "val", starts_with(c("tXw", "tYw"))) %>%
   select(measure, val, d, epsilon, stab, ratio, force, fixed) %>%
-  extract(measure, c("measure", "tq", "tn"), "(\\w{2})(\\d)(\\d\\b)")%>%
-  group_by(d, epsilon, force, ratio, fixed, measure, tq, tn) %>%
+  extract(measure, c("measure", "tq", "tn"), "(\\w{3})(\\d)(\\d\\b)")%>%
+  group_by(d, epsilon, force, fixed,ratio, measure, tq, tn) %>%
   summarise(
     meanVal = mean(val, na.rm = T)
   ) %>%
   mutate(tq = as.numeric(tq),
          tn = as.numeric(tn)) %>%
-  filter(measure%in%c("tX","tY"), 
+  filter(measure%in%c("tXw","tYw"), 
          force==0.03,
          # ratio%in%c(0.1, 0.5, 0.9),
+         tn>0, tn<4, tq<5
+  ) %>%
+  ungroup()
+
+ggplot(plotDat %>% filter(measure=="tY",d==0.3, epsilon==1, tn==2)) + 
+  # facet_grid(~measure, scales="free") +
+  geom_contour_filled(aes((ratio), tq, 
+                z=meanVal),
+            size=1)+
+  my_theme
+
+ggplot(plotDat %>% filter(measure=="tX",d==0.2, epsilon==1, tn==2)) + 
+  # facet_grid(~measure, scales="free") +
+  geom_contour_filled(aes((ratio), tq, 
+                          z=meanVal),
+                      size=1)+
+  my_theme
+
+ggplot(plotDat %>% filter(measure=="tY",d==0.3, epsilon==1)) + 
+  facet_grid(~tq, scales="free") +
+  geom_contour_filled(aes((ratio), tn, 
+                          z=meanVal),
+                      size=1)+
+  my_theme
+
+ggplot(plotDat %>% filter(measure=="tY",d==0.3, epsilon==1)) + 
+  facet_wrap(~ratio, scales="free") +
+  geom_contour_filled(aes(tq, tn, 
+                          z=meanVal),
+                        size=1)+
+  my_theme
+
+ggplot(plotDat %>% filter(measure=="tX",d==0.3, epsilon==1)) + 
+  facet_wrap(~ratio, scales="free") +
+  geom_contour_filled(aes(tq, tn, 
+                          z=meanVal),
+                      size=1)+
+  my_theme
+
+
+
+
+plotDat <- dat3 %>%
+  gather("measure", "val", starts_with(c("tF"))) %>%
+  select(measure, val, d, epsilon, stab, ratio, force, fixed) %>%
+  extract(measure, c("measure", "tq", "tn"), "(\\w{2})(\\d)(\\d\\b)")%>%
+  group_by(d, epsilon, force, ratio, stab, fixed, measure, tq, tn) %>%
+  summarise(
+    meanVal = mean(val, na.rm = T)
+  ) %>%
+  mutate(tq = as.numeric(tq),
+         tn = as.numeric(tn)) %>%
+  filter(measure%in%c("tF"), 
+         force==0.03,
+         # ratio%in%c(0.1, 0.5, 0.9),
+         stab%in%c(5, 10, 15),
          tn>0
   ) %>%
   ungroup()
 
 ggplot(plotDat %>% filter(d==0.5, epsilon==5)) + 
-  facet_grid(~ratio, scales="free") +
-  geom_tile(aes(tq, tn, 
-                fill=meanVal),
+  facet_grid(tn~measure, scales="free") +
+  geom_path(aes(tq, meanVal, 
+                colour=as.factor(ratio),
+                linetype=as.factor(stab)),
             size=1) +
   my_theme
+

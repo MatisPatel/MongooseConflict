@@ -25,8 +25,12 @@ for i in 1:length(files)
         normF = testDat[:tF][:, 2:end]./sum(testDat[:tF][:, 2:end])
         nArray = repeat([i for i in 1:(testDat[:n]-1)]', testDat[:q])
         testDat[:avgR] = mean(testDat[:tR][:, 3:end])
+        testDat[:tXr] = testDat[:tX][:, 2:end]
+        testDat[:tYr] = testDat[:tY][:, 2:end]
         testDat[:tXw] = testDat[:tX][:, 2:end] .* normF
         testDat[:tYw] = testDat[:tY][:, 2:end] .* normF
+        testDat[:tXi] = (testDat[:tX][:, 2:end] .* normF .*  nArray)./ sum(normF .* nArray)
+        testDat[:tYi] = (testDat[:tY][:, 2:end] .* normF .*  nArray)./ sum(normF .* nArray)
         testDat[:groupAvgX] = sum(testDat[:tXw])
         testDat[:indAvgX] = sum(testDat[:tXw] .*  nArray)/ sum(normF .* nArray)
         testDat[:groupAvgY] = sum(testDat[:tYw])
@@ -56,7 +60,8 @@ for i in 1:length(files)
         testDat[:qVal] = mean(mapslices(diff, testDat[:relW], dims=1))
         testDat[:qVar] = StatsBase.var(mapslices(sum, testDat[:tF], dims=2))
         testDat[:totFreq] = sum(testDat[:tF])
-        testDat[:popSize] = sum(testDat[:tF][:, 2:end])
+        testDat[:occupancy] = sum(testDat[:tF][:, 2:end])
+        testDat[:popSize] = sum(testDat[:tF][:, 2:end].*nArray)
         testDat[:collapsed] = isapprox(sum(testDat[:tF][:, 1]), 1; atol=1E-6) 
         testDat[:fixed] = string(testDat[:fixed]...) 
         testDat[:fightNum] = sum(testDat[:epsilon].*kron(testDat[:tF], testDat[:tF]))
