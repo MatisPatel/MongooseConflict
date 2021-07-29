@@ -283,6 +283,31 @@ ggplot(plotDat %>% filter(d==0.5, epsilon==5)) +
 ggsave("../graphs/quality_R.pdf")  
 
 plotDat <- dat %>% filter(force==0.03) %>%
+  gather("measure", "val", starts_with(c("tF"), ignore.case = FALSE)) %>%
+  select(avgMort, avgR, measure, val, d, epsilon, stab, ratio, force, fixed) %>%
+  extract(measure, c("measure", "tq", "tn"), "(\\w{2})(\\d)(\\d\\b)")%>%
+  group_by(d, epsilon, ratio, stab, fixed, measure, tq, tn) %>%
+  summarise(
+    meanVal = mean(val, na.rm = T),
+  ) %>%
+  mutate(tq = as.numeric(tq),
+         tn = as.numeric(tn)) %>%
+  filter(force==0.03,
+         ratio%in%c(0.1, 0.5, 0.9),
+         stab%in%c(5, 10, 15),
+         tn>0
+  ) %>%
+  ungroup()
+
+ggplot(plotDat %>% filter(d==0.5, epsilon==5)) + 
+  facet_grid(~measure, scales="free") +
+  geom_path(aes(tq, meanVal, 
+                colour=as.factor(ratio),
+                linetype=as.factor(stab)),
+            size=1) +
+  my_theme
+
+plotDat <- dat %>% filter(force==0.03) %>%
   gather("measure", "val", starts_with(c("M"), ignore.case = FALSE)) %>%
   select(avgMort, avgR, measure, val, d, epsilon, stab, ratio, force, fixed) %>%
   extract(measure, c("measure", "tq", "tn"), "(\\w{2})(\\d)(\\d\\b)")%>%

@@ -30,12 +30,12 @@ dat <- read_csv('../results/190721_fullrange.csv') %>%
 ## X and Y with Relatedness
 
 ```{r , include=FALSE}
-plotDat <- dat %>% filter(n==3&q==5) %>% 
+plotDat <- dat %>% filter(n==3&q==5, epsilon==5, stab==5) %>% 
   # filter(force==0|(force!=0&err<1E-6)) %>%
   group_by(d, force, ratio, fixed) %>%
   summarise(
     Cooperation = mean(indAvgX, na.rm=T),
-    Conflict = mean(indAvgY, na.rm=T),
+    Conflict = mean(groupAvgY, na.rm=T),
     Relatedness = mean(avgR, na.rm=T),
     Harshness = as.factor(1-ratio)
   ) %>%
@@ -60,7 +60,7 @@ ggplot(plotDat %>% filter(force==0.03)) +
 ## X and Y with Encounter Rate
 
 ```{r, include=FALSE}
-plotDat <- dat %>% filter(n==3&q==5, d>0.1, d<0.9) %>%
+plotDat <- dat %>% filter(n==3&q==5, d>0.1, d<0.9, stab==10) %>%
   # filter(force==0|(force!=0&err<1E-6)) %>%
   group_by(force, ratio, epsilon, fixed) %>%
   summarise(
@@ -165,15 +165,7 @@ ggplot(plotDat) +
             size=1) +
   my_theme
 ```
-```{r}
-ggplot(plotDat%>%filter(Harshness==0.5)) + 
-  facet_grid(~epsilon)+
-  geom_path(aes(Quality, freq, 
-                linetype=Harshness),
-            size=1) +
-  my_theme
-ggsave("freqPlot.pdf", width=30, height=8, units="in")
-```
+
 
 ## Effect of Size level on traits
 ```{r}

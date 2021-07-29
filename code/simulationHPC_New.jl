@@ -821,7 +821,7 @@ function runSim(world)
         corrErr(world[:gradY], world[:tY]))
         println(i, " --- ",  err)
         world[:err] = err
-        if err < 1E-8
+        if err < 1E-5
             world[:itr] = i
             break
         end
@@ -875,6 +875,7 @@ function testRatios!(resWorld)
         solF = genSolF(fFun, newWorld)
         resWorld[Symbol(replace(string("rF","_", newWorld[:ratio]), "."=>"_"))] = solF.zero
     end
+    return resWorld
 end
 
 function produceSim(world)
