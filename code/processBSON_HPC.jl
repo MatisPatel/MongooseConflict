@@ -32,9 +32,9 @@ for i in 1:length(files)
         testDat[:tXi] = (testDat[:tX][:, 2:end] .* normF .*  nArray)./ sum(normF .* nArray)
         testDat[:tYi] = (testDat[:tY][:, 2:end] .* normF .*  nArray)./ sum(normF .* nArray)
         testDat[:groupAvgX] = sum(testDat[:tXw])
-        testDat[:indAvgX] = sum(testDat[tXi])
+        testDat[:indAvgX] = sum(testDat[:tXi])
         testDat[:groupAvgY] = sum(testDat[:tYw])
-        testDat[:indAvgY] = sum(testDat[tYi])
+        testDat[:indAvgY] = sum(testDat[:tYi])
 
         AnArray = nArray[:, 1]
         testDat[:AtXw] = testDat[:tXw][:, 1:1]
