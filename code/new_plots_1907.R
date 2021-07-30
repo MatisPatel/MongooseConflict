@@ -27,7 +27,7 @@ classifyStability <- Vectorize(function(stability){
   }
 })
 
-dat <- read_csv('../results/190721_fullrange.csv') %>% 
+dat <- read_csv('../results/30072021_35_53.csv') %>% 
   filter(collapsed!=TRUE) %>%
   # distinct(force, d, epsilon, stab, ratio, .keep_all=TRUE) %>%
   mutate(
@@ -70,7 +70,7 @@ plotDat <- dat %>%
     avgR = mean(avgR, na.rm=T)
   ) %>%
   gather("trait", "val", gX, gY) %>%
-  filter(epsilon==5,
+  filter(epsilon==0.5,
          ratio%in%c(0.1, 0.5, 0.9),
          stab%in%c(5, 10, 15))
 ggplot(plotDat) +
@@ -89,7 +89,7 @@ plotDat <- dat %>%
     avgR = mean(avgR, na.rm=T)
   ) %>%
   gather("trait", "val", gX, gY) %>%
-  filter(epsilon==5)
+  filter(epsilon==2)
 ggplot(plotDat) +
   facet_grid(~trait, scales="free") +
   geom_path(aes(avgR, val,  color=as.factor(ratio)), size=1) +
@@ -97,7 +97,7 @@ ggplot(plotDat) +
 ggsave("../graphs/traits_allRatios.pdf")
 # looking at stability and ratio
 plotDat <- dat %>% 
-  filter(force==0.03) %>%
+  filter(force==0.03, epsilon==1, d==0.5) %>%
   group_by(force, ratio,stab) %>%
   summarise(
     gX = mean(indAvgX, na.rm=T),
