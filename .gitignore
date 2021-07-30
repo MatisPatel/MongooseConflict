@@ -5,6 +5,7 @@
 *.png 
 *.pdf
 *.csv
+*.zip
 
 #R
 # History files

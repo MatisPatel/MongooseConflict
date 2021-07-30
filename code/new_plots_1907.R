@@ -343,16 +343,16 @@ plotDat <- dat %>% filter(force==0.03) %>%
   mutate(tq = as.numeric(tq), tn=as.numeric(tn)) %>%
   filter(ratio%in%c(0.1, 0.5, 0.9),
          stab%in%c(5, 10, 15),
+         
          tn>0
          # measure%in%c("Mf")
   ) %>%
   ungroup()
 
-ggplot(plotDat %>% filter(d==0.5, epsilon==5)) + 
+ggplot(plotDat %>% filter(d==0.5, ratio==0.5, stab==10)) + 
   facet_grid(tn~measure, scales="free") +
   geom_path(aes(tq, meanVal, 
-                colour=as.factor(ratio),
-                linetype=as.factor(stab)),
+                colour=as.factor(epsilon)),
             size=1) +
   my_theme
 ggsave("../graphs/quality_fitness.pdf")  

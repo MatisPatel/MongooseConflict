@@ -22,7 +22,7 @@ my_theme <- theme_bw() +
 
 ```{r, include=FALSE}
 dat <- read_csv('../results/190721_fullrange.csv') %>% 
-  filter(collapsed!=TRUE)
+  filter(collapsed!=TRUE, err<=1E-6)
 # %>%
 #   filter(q==5, n==3)
 ```
@@ -89,7 +89,7 @@ ggplot(plotDat %>% filter(force==0.03)) +
 
 ## Relatedness and Mortality 
 ```{r, include=FALSE}
-plotDat <- dat %>% filter(n==3&q==5) %>%
+plotDat <- dat %>% filter(n==3&q==5, epsilon==5) %>%
   # filter(force==0|(force!=0&err<1E-6)) %>%
   group_by(d, force, ratio, fixed) %>%
   summarise(
@@ -115,86 +115,113 @@ ggplot(plotDat %>% filter(force==0.03)) +
 
 ## Effect of Quality level on traits
 
-```{r, include=FALSE}
-td <- dat %>%
-  gather("measure", "val", starts_with(c("tF", "tX", "tY", "Pf"))) %>%
-  extract(measure, 
-          c("Trait", "Quality", "Size"), 
-          "(\\w{2})(\\d)(\\d\\b)")%>%
-  pivot_wider(names_from = Trait, values_from=val) %>%
-  group_by(ID) %>%
+```{r}
+td <- dat %>% 
+  filter(q==5, n==3, force==0.03) %>%
+  # filter(q==5, n==3, epsilon%in%c(5,10),d==0.5, ratio==0.5, stab==10, force==0.03) %>%
+  pivot_longer(
+    cols = matches("(t[XYF])(\\d)(\\d\\b)"),
+    names_to = c("Trait", "Quality", "Size"),
+    names_pattern = "(t[XYF])(\\d)(\\d\\b)",
+    values_to = "Investment"
+  ) %>% filter(!is.na(Investment), Size>0) %>%
+  select(Trait, Investment, Quality, Size, d, epsilon, ratio, stab) %>%
+  pivot_wider(names_from = Trait, values_from=Investment) %>%
   mutate(
-    normF  = tF/(sum(tF, na.rm = T)),
-    Quality = as.numeric(Quality),
     Size = as.numeric(Size),
-    tXi = (normF * tX * Size) / sum(normF * Size, na.rm=T),
-    tYi = (normF * tY * Size) / sum(normF * Size, na.rm=T),
-    Pfi = (normF * Pf * Size) / sum(normF * Size, na.rm=T)
+    Quality = as.numeric(Quality)
   ) %>%
-  ungroup()
+  group_by(d, epsilon, ratio, stab) %>%
+  mutate(
+    normF = tF/(sum(tF)),
+    reg = normF*Size,
+    tXi = (tX * reg) / sum(reg),
+    tYi = (tY * reg) / sum(reg)
+  )
   
 ```
 ```{r}
-plotDat <- td %>% filter(d!=0.9, d!=0.1) %>%
-  gather("Trait", "val", tXi, tYi) %>%
-  select(Trait, val, d, epsilon, 
-         stab, ratio, force, fixed, Size, Quality, normF) %>%
-  group_by(force, ratio, fixed, Trait, Quality, epsilon) %>%
-  summarise(
-    Investment = mean(val, na.rm = T),
-    freq = sum(normF, na.rm=T)
+plotDat <- td %>% filter(d==0.5, epsilon==5, stab==10) %>%
+  pivot_longer(
+    cols=all_of(c("tX", "tY")),
+    names_to = "Trait",
+    values_to = "Investment"
   ) %>%
   mutate(
-         Harshness = as.factor(1-ratio)) %>%
+         Harshness = as.factor(1-ratio)
+  ) %>%
   filter( 
-         force==0.03,
-         Harshness%in%c(0.1,0.4, 0.5, 0.6, 0.9),
+         Harshness%in%c(0.1, 0.4, 0.5, 0.6, 0.9),
          # stab%in%c(5, 10, 15),
          # Size>0
-  ) %>% ungroup()
+  ) %>% 
+  ungroup()
   
 plotDat$Trait <- recode_factor(plotDat$Trait,
-                        tXi="Cooperation", 
-                        tYi="Conflict")
+                        tX="Cooperation", 
+                        tY="Conflict")
 ```
 ```{r}
 ggplot(plotDat) + 
-  facet_wrap(~Trait, scales="free_y") +
-  geom_path(aes(Quality, Investment, 
-                linetype=Harshness),
+  facet_grid(Harshness~Trait, scales="free_y") +
+  geom_line(aes(Quality, Investment, 
+                linetype=as.factor(Size)),
             size=1) +
   my_theme
 ```
 
-
 ## Effect of Size level on traits
 ```{r}
-plotDat <- td %>% filter(d!=0.9, d!=0.1) %>%
-  gather("Trait", "val", tXi, tYi) %>%
-  select(Trait, val, d, epsilon, 
-         stab, ratio, force, fixed, Size, Quality) %>%
-  group_by(force, ratio, fixed, Trait, Size) %>%
-  summarise(
-    Investment = mean(val, na.rm = T)
-  ) %>%
+td <- dat %>% 
+  # filter(q==3, n==5, force==0.03) %>% distinct() %>%
+  filter(q==3, n==5, epsilon%in%c(5), force==0.03) %>%
+  pivot_longer(
+    cols = matches("(t[XYF])(\\d)(\\d\\b)"),
+    names_to = c("Trait", "Quality", "Size"),
+    names_pattern = "(t[XYF])(\\d)(\\d\\b)",
+    values_to = "Investment"
+  ) %>% filter(!is.na(Investment), Size>0) %>%
+  select(Trait, Investment, Quality, Size, d, epsilon, ratio, stab) %>%
+  pivot_wider(names_from = Trait, values_from=Investment) %>%
   mutate(
-         Harshness = as.factor(1-ratio)) %>%
-  filter( 
-         force==0.03,
-         Harshness%in%c(0.1,0.4, 0.5, 0.6, 0.9),
-         # stab%in%c(5, 10, 15),
-         # Size>0
-  ) %>% ungroup()
+    Size = as.numeric(Size),
+    Quality = as.numeric(Quality)
+  ) %>%
+  group_by(d, epsilon, ratio, stab) %>%
+  mutate(
+    normF = tF/(sum(tF)),
+    reg = normF*Size,
+    tXi = (tX * reg) / sum(reg),
+    tYi = (tY * reg) / sum(reg)
+  )
   
-plotDat$Trait <- recode_factor(plotDat$Trait,
-                        tXi="Cooperation", 
-                        tYi="Conflict")
 ```
 ```{r}
-ggplot(plotDat) + 
+plotDat <- td %>% filter(d==0.5, epsilon==5, stab==10) %>%
+  pivot_longer(
+    cols=all_of(c("tX", "tY")),
+    names_to = "Trait",
+    values_to = "Investment"
+  ) %>%
+  mutate(
+         Harshness = as.factor(1-ratio)
+  ) %>%
+  filter( 
+         Harshness%in%c(0.1, 0.5, 0.9),
+         # stab%in%c(5, 10, 15),
+         # Size>0
+  ) %>% 
+  ungroup()
+  
+plotDat$Trait <- recode_factor(plotDat$Trait,
+                        tX="Cooperation", 
+                        tY="Conflict")
+```
+```{r}
+ggplot(plotDat%>%filter(Harshness==0.5)) + 
   facet_wrap(~Trait, scales="free_y") +
-  geom_path(aes(Size, Investment, 
-                linetype=Harshness),
+  geom_line(aes(Size, Investment, 
+                linetype=as.factor(Quality)),
             size=1) +
   my_theme
 ```
@@ -204,7 +231,7 @@ ggplot(plotDat) +
 ```{r , include=FALSE}
 plotDat <- dat %>%
   # filter(force==0|(force!=0&err<1E-6)) %>%
-  group_by(d, force, ratio, fixed) %>%
+  group_by(d, force, ratio, epsilon, fixed, stab) %>%
   summarise(
     Cooperation = mean(indAvgX, na.rm=T),
     Conflict = mean(indAvgY, na.rm=T),
@@ -214,18 +241,25 @@ plotDat <- dat %>%
   gather("Trait", "Investment", 
          Cooperation, Conflict) %>%
   filter(
-         # epsilon%in%c(1,5,10),
+         epsilon%in%c(1,5,8),
          d%in%c(0.1, 0.5, 0.9),
          # stab%in%c(5, 10, 15)
          ) %>%
   ungroup()
 ```
 ```{r }
-ggplot(plotDat %>% filter(force==0.03)) +
+ggplot(plotDat %>% 
+         filter(force==0.03,  epsilon==5, stab==10)) +
   facet_wrap(~Trait, scales="free") +
   geom_path(aes(Harshness, 
-                Investment, 
-                linetype=Dispersal), size=1) +
+                Investment, linetype=as.factor(d)), size=1) +
+  my_theme
+
+ggplot(plotDat %>% 
+         filter(force==0.03,  d==0.5, stab==10)) +
+  facet_wrap(~Trait, scales="free") +
+  geom_path(aes(Harshness, 
+                Investment, linetype=as.factor(epsilon)), size=1) +
   my_theme
 ```
 
@@ -234,7 +268,7 @@ ggplot(plotDat %>% filter(force==0.03)) +
 ```{r , include=FALSE}
 plotDat <- dat %>%
   # filter(force==0|(force!=0&err<1E-6)) %>%
-  group_by(d, force, stab, fixed) %>%
+  group_by(d, force, stab, fixed, epsilon, ratio) %>%
   summarise(
     Cooperation = mean(indAvgX, na.rm=T),
     Conflict = mean(indAvgY, na.rm=T),
@@ -251,7 +285,7 @@ plotDat <- dat %>%
   ungroup()
 ```
 ```{r }
-ggplot(plotDat %>% filter(force==0.03)) +
+ggplot(plotDat %>% filter(force==0.03, ratio==0.5, epsilon==5)) +
   facet_wrap(~Trait, scales="free") +
   geom_path(aes(Stability, 
                 Investment, 
