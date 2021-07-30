@@ -20,6 +20,7 @@ end
 rows=[]
 fullDat = DataFrame(Dict(:ID => 0))
 for i in 1:length(files)
+    println("Processing ", i, " off ", length(files))
     try
         testDat = load(joinpath(datdir, files[i]))
         normF = testDat[:tF][:, 2:end]./sum(testDat[:tF][:, 2:end])
