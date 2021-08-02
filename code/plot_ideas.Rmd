@@ -487,3 +487,76 @@ ggplot(plotDat%>%filter(Quality==3)) +
   scale_fill_viridis_c() +
   my_theme
 ```
+
+## Peturb graphs
+```{r}
+td <- dat %>% 
+  filter(q==3, n==5, d==0.5,  
+         stab==10, force==0.03) %>%
+  pivot_longer(
+    cols = matches("((?:rF_0_\\d+)|(?:t[XY]))(\\d)(\\d)"),
+    names_to = c("Measure", "Quality", "Size"),
+    names_pattern = "((?:rF_0_\\d+)|(?:t[XY]))(\\d)(\\d)",
+    values_to = "Value"
+  ) %>%
+  filter(!is.na(Value)) %>%
+  pivot_wider(
+    names_from = Measure, values_from = Value
+  ) %>%
+  pivot_longer(
+    cols = matches("(rF)_(0_\\d+)"),
+    names_to = c("freq", "pRatio"),
+    names_pattern = "(rF)_(0_\\d+)",
+    values_to = "pFreq"
+  ) %>%
+  # filter(q==5, n==3, epsilon%in%c(5,10),d==0.5, ratio==0.5, stab==10, force==0.03) %>%
+  # pivot_longer(
+  #   cols = matches("(rF)_(0_\\d+)(\\d)(\\d)"),
+  #   names_to = c("Measure", "pRatio", "Quality", "Size"),
+  #   names_pattern = "(rF)_(0_\\d+)(\\d)(\\d)",
+  #   values_to = "pFreq"
+  # ) %>%
+  # pivot_longer(
+  #   cols = matches("(t[XY])(\\d)(\\d\\b)"),
+  #   names_to = c("Trait", "Quality2", "Size2"),
+  #   names_pattern = "(t[XY])(\\d)(\\d\\b)",
+  #   values_to = "Investment"
+  # ) %>%
+  mutate(
+    pRatio = as.numeric(str_replace(pRatio, "_", ".")),
+    Size = as.numeric(Size),
+    Quality = as.numeric(Quality)
+  ) %>%
+  filter(ratio%in%unique(pRatio)) %>%
+  select(q, n, d, epsilon, stab, force, 
+         freq, tX, tY, Quality, Size, pRatio, pFreq, ratio) %>%
+  group_by(epsilon, stab, d, pRatio, ratio) %>%
+  filter(Size>1) %>%
+  mutate(normF = pFreq/sum(pFreq)) %>%
+  summarize(
+    pcX = sum(tX*normF*Size) / sum(Size*normF),
+    pcY = sum(tY*normF*Size) / sum(Size*normF)
+  ) %>%  
+  ungroup() %>%
+  group_by(ratio, d, epsilon, stab) %>%
+  mutate(
+    baseX = pcX[pRatio == ratio],
+    baseY = pcY[pRatio == ratio],
+    diffX = pcX - baseX,
+    diffY = pcY - baseY
+  )
+```
+
+```{r}
+ggplot(td) + 
+  geom_line(aes(pRatio, diffX, colour=as.factor(ratio))) +
+  geom_hline(yintercept=0) +
+  my_theme
+```
+
+```{r}
+ggplot(td) + 
+  geom_line(aes(pRatio, diffY, colour=as.factor(ratio))) +
+  geom_hline(yintercept=0) +
+  my_theme
+```

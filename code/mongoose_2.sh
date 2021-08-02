@@ -25,7 +25,7 @@
 #SBATCH --mem=3420mb
 #! Submit a job array with index values between 0 and 31
 #! NOTE: This must be a range, not a single number (i.e. specifying '32' here would only run one job, with index 32)
-#SBATCH --array=1-7938
+#SBATCH --array=1-1701
 
 #! This is the partition name.
 #SBATCH -p skylake,cclake
