@@ -12,8 +12,8 @@ world = Dict{Symbol, Any}(
     :itr =>0,
     :nGens => 1,
     :realGen =>  [@onlyif(:force != 0, 10000), @onlyif(:force==0, 1)],
-    :q => 4,
-    :n => 4,
+    :q => 3,
+    :n => 3,
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
     :stab => [5],
@@ -1254,6 +1254,46 @@ function produceSim(world)
     return res
 end
 
+
+function calcFights(world)
+    #number of valid fights 
+    totalF = 0 
+    partF = 0
+    for q in 1:world[:q]
+        for n in 1:world[:n]
+            for qOpp in 1:world[:q]
+                for nOpp in 1:world[:n]
+                    if !(n==1 && nOpp==1)
+                    totalF += world[:tF][q, n] * world[:tF][qOpp, nOpp] * world[:epsilon]
+                    # what is focal patch is minimal richness? then can only win losses dont change freq
+                    # or if qOpp is maximum and q is less than it
+                    if ((q == 1) & (qOpp > 1)) | ((qOpp == world[:q]) & (q < qOpp))
+                        # println("only win")
+                        partF += world[:tF][q, n] * world[:tF][qOpp, nOpp] * world[:epsilon]
+                    # what if focal patch is non-zero but other patch is 0. Then can only lose
+                    elseif ((q > 1) & (qOpp == 1)) | ((q == world[:q]) & (qOpp < q))
+                        # println("only lose")
+                        partF += world[:tF][q, n] * world[:tF][qOpp, nOpp] * world[:epsilon]
+                    # if equal richness and neither max not min then they can win or lose 
+                    elseif (q == qOpp) & (q > 1) & (q < world[:q])
+                        # println("both win or lose")
+                        # q wins
+                        partF += world[:tF][q, n] * world[:tF][qOpp, nOpp] * world[:epsilon]
+                    # or if diffrent and not min or max
+                    elseif (q != qOpp) & (q > 1) & (q < world[:q]) & (qOpp > 1) & (qOpp < world[:q])
+                        partF += world[:tF][q, n] * world[:tF][qOpp, nOpp] * world[:epsilon]
+                    else
+                        # println("NO MATCH") 
+                    end
+                end
+                end
+            end
+        end
+    end
+    fights = partF/totalF
+    return fights
+end
+
 function testRatios!(resWorld)
     for newRatio in 0.1:0.05:0.9
         newWorld = deepcopy(resWorld)
@@ -1310,116 +1350,118 @@ for cosm in worldSet
     cosm[:gain] = cosm[:ratio]/cosm[:stab]
     cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
     @time resWorld = produceSim(cosm)
-    global finalWorld = testRatios!(resWorld)
+    finalWorld = testRatios!(resWorld)
+    global finalWorld[:fights] = calcFights(finalWorld)
     push!(ls, finalWorld)
     # save(joinpath("..", "data", savename(world, "bson")), resWorld)
 end
 
-using StatsBase
-using Plots 
-gr()
 
-nArray = repeat([i for i in 1:(world[:n]-1)]', world[:q])
-baseF = []
-baseX = []
-baseY = []
-baseM = []
-rbase = []
-for ww in ls 
-    tF = ww[:tF]
-    iX = mean((tF[:, 2:end] .* ww[:tX][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
-    iY = mean((tF[:, 2:end] .* ww[:tY][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
-    iM = mean((tF[:, 2:end] .* ww[:M][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
-    push!(baseF, sum(tF[:, 2:end].*nArray))
-    push!(baseX, iX)
-    push!(baseY, iY)
-    push!(baseM, iM)
-    push!(rbase, ww[:ratio])
-end
+# using StatsBase
+# using Plots 
+# gr()
+
+# nArray = repeat([i for i in 1:(world[:n]-1)]', world[:q])
+# baseF = []
+# baseX = []
+# baseY = []
+# baseM = []
+# rbase = []
+# for ww in ls 
+#     tF = ww[:tF]
+#     iX = mean((tF[:, 2:end] .* ww[:tX][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
+#     iY = mean((tF[:, 2:end] .* ww[:tY][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
+#     iM = mean((tF[:, 2:end] .* ww[:M][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
+#     push!(baseF, sum(tF[:, 2:end].*nArray))
+#     push!(baseX, iX)
+#     push!(baseY, iY)
+#     push!(baseM, iM)
+#     push!(rbase, ww[:ratio])
+# end
 
 
-plt = plot(rbase, baseF.-baseF, label="evolved", title="Population Size", legend= :outerbottom, size=(1800, 1000));
-for i in 1:length(ls)
-    ww = ls[i]
-    Flist = [] 
-    Xlist = []
-    Ylist = []
-    for r in world[:ratio]
-        tF = ww[Symbol(replace(string("rF","_", r), "."=>"_"))]
-        iX = mean(tF[:, 2:end] .* ww[:tX][:, 2:end])
-        iY = mean(tF[:, 2:end] .* ww[:tY][:, 2:end])
-        push!(Flist, sum(tF[:, 2:end].*nArray))
-        push!(Xlist, iX)
-        push!(Ylist, iY)
-    end
-    plt = plot!(plt, world[:ratio], Flist.-baseF, label=string("peturbed ", rbase[i]));
-    plt = scatter!(plt, [rbase[i]], [0], label="");
-end
-@show plt
-savefig(plt, "../graphs/populationSize_peturbed.pdf")
+# plt = plot(rbase, baseF.-baseF, label="evolved", title="Population Size", legend= :outerbottom, size=(1800, 1000));
+# for i in 1:length(ls)
+#     ww = ls[i]
+#     Flist = [] 
+#     Xlist = []
+#     Ylist = []
+#     for r in world[:ratio]
+#         tF = ww[Symbol(replace(string("rF","_", r), "."=>"_"))]
+#         iX = mean(tF[:, 2:end] .* ww[:tX][:, 2:end])
+#         iY = mean(tF[:, 2:end] .* ww[:tY][:, 2:end])
+#         push!(Flist, sum(tF[:, 2:end].*nArray))
+#         push!(Xlist, iX)
+#         push!(Ylist, iY)
+#     end
+#     plt = plot!(plt, world[:ratio], Flist.-baseF, label=string("peturbed ", rbase[i]));
+#     plt = scatter!(plt, [rbase[i]], [0], label="");
+# end
+# @show plt
+# savefig(plt, "../graphs/populationSize_peturbed.pdf")
 
-plt = plot(rbase, baseX.-baseX, label="evolved", title="Cooperation Level", legend=:outerbottom, size=(1800, 1000));
-for i in 1:length(ls)
-    ww = ls[i]
-    Flist = [] 
-    Xlist = []
-    Ylist = []
-    for r in world[:ratio]
-        tF = ww[Symbol(replace(string("rF","_", r), "."=>"_"))]
-        iX = mean((tF[:, 2:end] .* ww[:tX][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
-        iY = mean(tF[:, 2:end] .* ww[:tY][:, 2:end])
-        push!(Flist, sum(tF[:, 2:end].*nArray))
-        push!(Xlist, iX)
-        push!(Ylist, iY)
-    end
-    plt = plot!(plt, world[:ratio], Xlist.-baseX, label=string("peturbed ", rbase[i]));
-    plt = scatter!(plt, [rbase[i]], [0], label="");
-end
-@show plt
-savefig(plt, "../graphs/cooperation_peturbed.png")
+# plt = plot(rbase, baseX.-baseX, label="evolved", title="Cooperation Level", legend=:outerbottom, size=(1800, 1000));
+# for i in 1:length(ls)
+#     ww = ls[i]
+#     Flist = [] 
+#     Xlist = []
+#     Ylist = []
+#     for r in world[:ratio]
+#         tF = ww[Symbol(replace(string("rF","_", r), "."=>"_"))]
+#         iX = mean((tF[:, 2:end] .* ww[:tX][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
+#         iY = mean(tF[:, 2:end] .* ww[:tY][:, 2:end])
+#         push!(Flist, sum(tF[:, 2:end].*nArray))
+#         push!(Xlist, iX)
+#         push!(Ylist, iY)
+#     end
+#     plt = plot!(plt, world[:ratio], Xlist.-baseX, label=string("peturbed ", rbase[i]));
+#     plt = scatter!(plt, [rbase[i]], [0], label="");
+# end
+# @show plt
+# savefig(plt, "../graphs/cooperation_peturbed.png")
 
-plt = plot(rbase, baseY.-baseY, label="evolved", title="Conflict Level", legend=:outerbottom, size=(1800, 1000));
-for i in 1:length(ls)
-    ww = ls[i]
-    Flist = [] 
-    Xlist = []
-    Ylist = []
-    for r in world[:ratio]
-        tF = ww[Symbol(replace(string("rF","_", r), "."=>"_"))]
-        iX = mean(tF[:, 2:end] .* ww[:tX][:, 2:end])
-        iY = mean((tF[:, 2:end] .* ww[:tY][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
-        push!(Flist, sum(tF[:, 2:end].*nArray))
-        push!(Xlist, iX)
-        push!(Ylist, iY)
-    end
-    plt = plot!(plt, world[:ratio], Ylist.-baseY, label=string("peturbed ", rbase[i]));
-    plt = scatter!(plt, [rbase[i]], [0], label="");
-end
-@show plt
-savefig(plt, "../graphs/conflict_peturbed.png")
+# plt = plot(rbase, baseY.-baseY, label="evolved", title="Conflict Level", legend=:outerbottom, size=(1800, 1000));
+# for i in 1:length(ls)
+#     ww = ls[i]
+#     Flist = [] 
+#     Xlist = []
+#     Ylist = []
+#     for r in world[:ratio]
+#         tF = ww[Symbol(replace(string("rF","_", r), "."=>"_"))]
+#         iX = mean(tF[:, 2:end] .* ww[:tX][:, 2:end])
+#         iY = mean((tF[:, 2:end] .* ww[:tY][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
+#         push!(Flist, sum(tF[:, 2:end].*nArray))
+#         push!(Xlist, iX)
+#         push!(Ylist, iY)
+#     end
+#     plt = plot!(plt, world[:ratio], Ylist.-baseY, label=string("peturbed ", rbase[i]));
+#     plt = scatter!(plt, [rbase[i]], [0], label="");
+# end
+# @show plt
+# savefig(plt, "../graphs/conflict_peturbed.png")
 
-plt = plot(rbase, baseM.-baseM, label="evolved", title="Mortality Level", legend=:outerbottom, size=(1800, 1000));
-for i in 1:length(ls)
-    ww = ls[i]
-    Flist = [] 
-    Xlist = []
-    Ylist = []
-    Mlist = []
-    for r in world[:ratio]
-        tF = ww[Symbol(replace(string("rF","_", r), "."=>"_"))]
-        iX = mean(tF[:, 2:end] .* ww[:tX][:, 2:end])
-        iY = mean(tF[:, 2:end] .* ww[:tY][:, 2:end])
-        iM = mean((tF[:, 2:end] .* ww[:M][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
-        push!(Flist, sum(tF[:, 2:end].*nArray))
-        push!(Xlist, iX)
-        push!(Ylist, iY)
-        push!(Mlist, iM)
-    end
-    plt = plot!(plt, world[:ratio], Mlist.-baseM, label=string("peturbed ", rbase[i]));
-    plt = scatter!(plt, [rbase[i]], [0], label="");
-end
-@show plt
-savefig(plt, "../graphs/mortality_peturbed.png")
+# plt = plot(rbase, baseM.-baseM, label="evolved", title="Mortality Level", legend=:outerbottom, size=(1800, 1000));
+# for i in 1:length(ls)
+#     ww = ls[i]
+#     Flist = [] 
+#     Xlist = []
+#     Ylist = []
+#     Mlist = []
+#     for r in world[:ratio]
+#         tF = ww[Symbol(replace(string("rF","_", r), "."=>"_"))]
+#         iX = mean(tF[:, 2:end] .* ww[:tX][:, 2:end])
+#         iY = mean(tF[:, 2:end] .* ww[:tY][:, 2:end])
+#         iM = mean((tF[:, 2:end] .* ww[:M][:, 2:end] .* nArray) / (tF[:, 2:end] .* nArray))
+#         push!(Flist, sum(tF[:, 2:end].*nArray))
+#         push!(Xlist, iX)
+#         push!(Ylist, iY)
+#         push!(Mlist, iM)
+#     end
+#     plt = plot!(plt, world[:ratio], Mlist.-baseM, label=string("peturbed ", rbase[i]));
+#     plt = scatter!(plt, [rbase[i]], [0], label="");
+# end
+# @show plt
+# savefig(plt, "../graphs/mortality_peturbed.png")
 
 # gradX = substitute.(grads[1], matSub(X.=>world[:tX], Y.=>world[:tY], F.=>world[:tF], W.=>world[:tW], R.=>world[:tR]))
 # save("worldList.bson", ls)

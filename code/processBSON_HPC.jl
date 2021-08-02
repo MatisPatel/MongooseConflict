@@ -17,6 +17,45 @@ function mortFun(n, x, y, B, multX, multY)
     return calc
 end
 
+function calcFights(world)
+    #number of valid fights 
+    totalF = 0 
+    partF = 0
+    for q in 1:world[:q]
+        for n in 1:world[:n]
+            for qOpp in 1:world[:q]
+                for nOpp in 1:world[:n]
+                    if !(n==1 && nOpp==1)
+                    totalF += world[:tF][q, n] * world[:tF][qOpp, nOpp] * world[:epsilon]
+                    # what is focal patch is minimal richness? then can only win losses dont change freq
+                    # or if qOpp is maximum and q is less than it
+                    if ((q == 1) & (qOpp > 1)) | ((qOpp == world[:q]) & (q < qOpp))
+                        # println("only win")
+                        partF += world[:tF][q, n] * world[:tF][qOpp, nOpp] * world[:epsilon]
+                    # what if focal patch is non-zero but other patch is 0. Then can only lose
+                    elseif ((q > 1) & (qOpp == 1)) | ((q == world[:q]) & (qOpp < q))
+                        # println("only lose")
+                        partF += world[:tF][q, n] * world[:tF][qOpp, nOpp] * world[:epsilon]
+                    # if equal richness and neither max not min then they can win or lose 
+                    elseif (q == qOpp) & (q > 1) & (q < world[:q])
+                        # println("both win or lose")
+                        # q wins
+                        partF += world[:tF][q, n] * world[:tF][qOpp, nOpp] * world[:epsilon]
+                    # or if diffrent and not min or max
+                    elseif (q != qOpp) & (q > 1) & (q < world[:q]) & (qOpp > 1) & (qOpp < world[:q])
+                        partF += world[:tF][q, n] * world[:tF][qOpp, nOpp] * world[:epsilon]
+                    else
+                        # println("NO MATCH") 
+                    end
+                end
+                end
+            end
+        end
+    end
+    fights = partF/totalF
+    return fights
+end
+
 rows=[]
 fullDat = DataFrame(Dict(:ID => 0))
 for i in 1:length(files)
@@ -67,7 +106,7 @@ for i in 1:length(files)
         testDat[:popSize] = sum(testDat[:tF][:, 2:end].*nArray)
         testDat[:collapsed] = isapprox(sum(testDat[:tF][:, 1]), 1; atol=1E-6) 
         testDat[:fixed] = string(testDat[:fixed]...) 
-        testDat[:fightNum] = sum(testDat[:epsilon].*kron(testDat[:tF], testDat[:tF]))
+        testDat[:fightnum] = calcFights(testDat)
         tempDict = Dict{Symbol, Any}(:ID=>i)
         for (key, val) in testDat
             # println(key)
