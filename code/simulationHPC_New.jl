@@ -821,7 +821,7 @@ function runSim(world)
         corrErr(world[:gradY], world[:tY]))
         println(i, " --- ",  err)
         world[:err] = err
-        if err < 1E-7
+        if err < 1E-6
             world[:itr] = i
             break
         end
