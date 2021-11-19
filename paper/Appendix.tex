@@ -1,0 +1,61 @@
+\section{Model Description}\label{app:model}\todo{do each section biol and add example case (f11)}
+
+In our model we sought to understand the link between resource richness for an cooperative group and their resulting investments into two social traits. The first trait is a cooperative trait modelled as a simple public good which helped all member of the patch to survive for longer ($\mathbf{X}$). The second is a competitive trait modelled as a simple blind bid game the winning group then gaining control of one of the loser's resources ($\mathbf{Y}$). 
+
+We modeled an infinite population consisting of individual patches. A patch is identified by its quality level, $q \in \mathbb{Z} : q \in \left[ 0, Q \right]$, and the number of individuals on the patch, $n \in \mathbb{Z} : n \in \left[ 0, N \right]$. Where the maximum quality, $Q$, and maximum group size, $N$, are predetermined parameters. 
+
+The distribution of patches in the population can therefore be described by a $q \times n$ matrix $\mathbf{F}$ with elements $f_{q,n}$. Equally, the evolved strategies of cooperation, $\mathbf{X}$, and conflict, $\mathbf{Y}$ are matrices which indicate the strategy of individual in state $\{q, n\}$. 
+
+To find the stable distribution of patch frequencies we first derived the equations for how frequencies change in the model. We constructed a matrix $\mathbf{F}'$ which describes how demographic processes and between patch interactions affect the frequency of each patch type. Furthermore we define matrices $\mathbf{W}'$ and $\mathbf{R}'$ which denote the change in fitness and the change in relatedness within patches respectively (see \cref{app:model}).
+
+We then solved for the steady state, $\mathbf{F}' = [0]_{q\times n}$ yielding the frequencies of each state in the population at equilibrium. These equilibrium frequencies, $\mathbf{F^{\ast}}$, are then used to solve for the equilibrium fitness values, $\mathbf{W^{\ast}}$, and the equilibrium relatedness values, $\mathbf{R^\ast}$. 
+
+The updating of the traits is done by taking selection gradients with respect to the two trait matrices, $\mathbf{X_{q\times n}}$ and $\mathbf{Y_{q\times n}}$. These selection gradients are then used to update the evolved values of $\mathbf{X}$ and $\mathbf{Y}$. Then the new equilibrium values of $\mathbf{F}$, $\mathbf{W}$, and $\mathbf{R}$ are used as to generate the new selection gradient and iterate until the selection gradient converges to $[0]_{q\times n}$.
+
+\subsection{Environmental Variables}
+The environment is defined by two varaibles enviornmental harshness, $\theta$, and resource stagnation, $\gamma$. These are defined using two values gain and loss. Which denote the chance that a patch spontaneously loses or  gains a resource. 
+
+\begin{align}
+    \theta\ =&\ \frac{\text{loss}}{\text{gain} + \text{loss}} \\
+    \gamma\ =&\ \frac{1}{\text{gain} + \text{loss}}
+\end{align}
+
+\subsection{Lifecycle outline}
+THe following section contains verbal descripitions of the various modelling steps that were taken to construct the recursion equations for the frequencies, fitness and relatedness matrices. We have included the generated equations for the patches of state $\{q=2, n=2\}$ with a maximum $Q=3$ and $N=3$. So all population and individual matrices are $3\times 3$. We include the added terms for the frequency equations only to aid understanding for exact representations for fitness and relatedness recursions we would direct the reader to the simulation files.
+
+\subsubsection{Environmental transitions}
+A patch can stochastically gain or lose a resource. These events are independent and random and happen on a per patch basis.
+\begin{align}
+    \Delta_{\text{Environ}} = g F_{1,2} + l F_{3,2} - g F_{2,2} - l F_{2,2}\,.
+\end{align}
+Where, the first term is the addition from poorer patches gaining a resource, the second is the addition from richer patches losing a resource and the penultimate and ultimate are subtractions from gain and loss of resource away from the focal state.
+
+\subsubsection{Mortality}
+Each individual has a chance of death which occurs independently.
+\begin{align}
+   \Delta_{\text{Mortality}} = - F_{2,2} M_{2,2} + 2 F_{2,3} M_{2,3}\, .
+\end{align}
+Where, the first term is the mortality in the current state and the second is the mortality from the state with one more individual. Note $N$ is 1-indexed making state $F_{2,3}$ one with 2 resources and 2 individuals.
+
+\subsection{Local births}
+Each individual on a patch produces offspring according to productivity, $P$, and these offspring are non-dispersing with probability $1-d$.
+\begin{align}
+    \Delta_{\text{births}} = - F_{2,2} P_{2,2} \left( 1 - d \right)\,.
+\end{align}
+Where, the only term is the subtraction of those patche that transition away to state $F_{2,3}$. 
+
+\subsection{Immigration}
+Each patch produces dispersing offspring that join a global pool and immigrate into patches at random. 
+\begin{align}
+    \Delta_{\text{Imm}} = d \bar{P} F_{2,1} - d \bar{P} F_{2,2}\,.
+\end{align}
+Where, $\bar{P}$ is the average dispersing offspring each group encounters. The first term is then transitions due to immigration from patches one size smaller and the second term is the transitions away from he focal state to one size larger groups. Adults do not disperse only offspring.
+
+\subsection{Fights}
+For this section the possible states have been reduced to two different resource levels and two group sizes, to aid in comprehension. Fights occur between groups based ona  mass action dynamic and a encounter rate term $\epsilon$ which is the same for all groups. 
+\begin{multline}
+    \Delta_{\text{fights}} = - \epsilon F{{_1}},{_1} F{{_2}},{_2} \left( 1 - \frac{\delta + C{{_2}},{_2}}{2\delta + C{{_2}},{_2}} \right) + \frac{\epsilon F{{_1}},{_2} F{{_2}},{_1} \left( \delta + C{{_1}},{_2} \right)}{2\delta + C{{_1}},{_2}} - \\ 
+    \epsilon F{{_1}},{_2} F{{_2}},{_2} \left( 1 - \frac{\delta + C{{_2}},{_2}}{2\delta + C{{_1}},{_2} + C{{_2}},{_2}} \right) + \frac{\epsilon F{{_1}},{_2} F{{_2}},{_2} \left( \delta + C{{_1}},{_2} \right)}{2\delta + C{{_1}},{_2} + C{{_2}},{_2}}\,.
+\end{multline}
+Each term in the above equation relates to one possible fighting scenario that can occur to group with state $q=2$ and $n=2$. The first term is the loss of resource to a group of type $\{q=1,n=1\}$. Second, is the influx from groups of state $\{1,2\}$ winning fights against state $\{2,1\}$. Third, is the efflux from state $\{2,2\}$ losing fights to state $\{1,2\}$. Fourth is the influx of state $\{1,2\}$ winning fights against the focal state $\{2,2\}$. 
+    

@@ -9,6 +9,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE) 
+knitr::opts_chunk$set(message = FALSE) 
 ```
 ```{r, include=FALSE}
 library(ggplot2)
@@ -80,13 +81,14 @@ plotDat <- dat %>% filter(n==3&q==5, d==0.3, stab==10) %>%
          ) %>%
   ungroup()
 ```
-```{r}
+```{r, message=FALSE}
 ggplot(plotDat %>% filter(force==0.03)) +
   facet_wrap(~Trait, scales="free") +
-  geom_path(aes((EncounterRate), 
+  geom_path(aes(log2(EncounterRate), 
                 Investment, 
                 linetype=Harshness), size=1) +
   my_theme
+ggsave("../graphs/traits_with_encounter.pdf")
 ```
 
 ## Relatedness and Mortality 
@@ -155,7 +157,7 @@ plotDat <- td %>% filter(d==0.5, epsilon==1, stab==5) %>%
   filter( 
          Harshness%in%c(0.1, 0.4, 0.5, 0.6, 0.9),
          # stab%in%c(5, 10, 15),
-         # Size>0
+         Size==2
   ) %>% 
   ungroup()
   
@@ -163,13 +165,14 @@ plotDat$Trait <- recode_factor(plotDat$Trait,
                         tX="Cooperation", 
                         tY="Conflict")
 ```
-```{r}
-ggplot(plotDat) + 
-  facet_grid(Harshness~Trait, scales="free_y") +
+```{r, message=FALSE}
+ggplot(plotDat%>%filter(Trait=="Conflict")) + 
+  facet_grid(~Trait, scales="free") +
   geom_line(aes(Quality, Investment, 
-                linetype=as.factor(Size)),
+                linetype=as.factor(Harshness)),
             size=1) +
   my_theme
+ggsave("../graphs/conflict_with_quality.pdf")
 ```
 
 ## Effect of Size level on traits
@@ -209,7 +212,7 @@ plotDat <- td %>% filter(d==0.5, epsilon==2, stab==10) %>%
          Harshness = as.factor(1-ratio)
   ) %>%
   filter( 
-         Harshness%in%c(0.1, 0.5, 0.9),
+         # Harshness%in%c(0.1, 0.5, 0.9),
          # stab%in%c(5, 10, 15),
          Size>1
   ) %>% 
@@ -220,12 +223,20 @@ plotDat$Trait <- recode_factor(plotDat$Trait,
                         tY="Conflict")
 ```
 ```{r}
-ggplot(plotDat%>%filter(Harshness==0.5)) + 
+ggplot(plotDat%>%filter(Quality==2)) + 
   facet_wrap(~Trait, scales="free_y") +
   geom_line(aes(Size, Investment, 
-                linetype=as.factor(Quality)),
+                linetype=as.factor(Harshness)),
             size=1) +
   my_theme
+ggsave("../graphs/traits_with_size.pdf")
+ggplot(plotDat%>%filter(Quality==2)) + 
+  facet_wrap(~Trait, scales="free_y") +
+  geom_line(aes(Size, Investment*Size, 
+                linetype=as.factor(Harshness)),
+            size=1) +
+  my_theme
+ggsave("../graphs/grouptraits_with_size.pdf")
 ```
 
 ## Effect of Harshness on Traits 
@@ -258,6 +269,7 @@ ggplot(plotDat %>%
   geom_path(aes(Harshness, 
                 Investment, linetype=as.factor(d)), size=1) +
   my_theme
+ggsave("../graphs/traits_with_harshness.pdf")
 
 ggplot(plotDat %>%
          filter(force==0.03,  d==0.5, stab==10)) +
@@ -308,11 +320,11 @@ plotDat <- dat %>%
     Harshness = as.numeric(1-ratio),
     Dispersal = as.factor(d)
   ) %>%
-  # filter(
-  #        # epsilon%in%c(1,5,10),
-  #        d%in%c(0.1, 0.5, 0.9),
-  #        # stab%in%c(5, 10, 15)
-  #        ) %>%
+  filter(
+         epsilon%in%c(0.125, 0.5,1,4, 8),
+         # d%in%c(0.1, 0.5, 0.9),
+         # stab%in%c(5, 10, 15)
+         ) %>%
   ungroup()
 ```
 ```{r }
@@ -321,6 +333,7 @@ ggplot(plotDat) +
                 Value, 
                 linetype=as.factor(epsilon)), size=1) +
   my_theme
+ggsave("../graphs/value_harshness.pdf")
 ```
 
 ## Effect of EncounterRate on Resource Value
@@ -557,18 +570,21 @@ td <- dat %>%
 
 ```{r}
 ggplot(td) + 
-  geom_line(aes(pHarsh, diffX, colour=as.factor(Harshness))) +
-  geom_hline(yintercept=0) +
-  geom_point(aes(Harshness, rep(0,length(Harshness)), colour=as.factor(Harshness))) +
+  geom_line(aes(pHarsh, diffX, colour=as.factor(Harshness)), size =1, alpha=0.7) +
+  geom_hline(yintercept=0, alpha =0.5) +
+  geom_point(aes(Harshness, rep(0,length(Harshness)), colour=as.factor(Harshness)), shape=4, size=4) +
   my_theme
+ggsave("../graphs/perturb_cooperation.pdf")
+
 ```
 
 ```{r}
 ggplot(td) + 
-  geom_line(aes(pHarsh, diffY, colour=as.factor(Harshness))) +
-  geom_hline(yintercept=0) +
-  geom_point(aes(Harshness, rep(0,length(Harshness)), colour=as.factor(Harshness))) +
+  geom_line(aes(pHarsh, diffY, colour=as.factor(Harshness)), size =1, alpha=0.7) +
+  geom_hline(yintercept=0, alpha=0.5) +
+  geom_point(aes(Harshness, rep(0,length(Harshness)), colour=as.factor(Harshness)), shape=4, size=4) +
   my_theme
+ggsave("../graphs/perturb_conflict.pdf")
 ```
 
 ## Fight number 

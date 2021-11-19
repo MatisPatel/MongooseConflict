@@ -8,12 +8,12 @@ using DrWatson
 pprint(x) = round.(x, digits=4)
 
 world = Dict{Symbol, Any}(
-    :force => [0.1],
+    :force => [0.0],
     :itr =>0,
     :nGens => 1,
     :realGen =>  [@onlyif(:force != 0, 10000), @onlyif(:force==0, 1)],
-    :q => 3,
-    :n => 3,
+    :q => 2,
+    :n => 2,
     # :gain => [0.05, 0.1, 0.15, 0.2, 0.25],
     # :loss => [0.05, 0.1, 0.15, 0.2, 0.25],
     :stab => [5],

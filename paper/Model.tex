@@ -1,34 +1,133 @@
 \section{Model}
+We modelled an infinite asexual population split into groups that each defend a exclusive territory. Each group is contains $0$ to $N$ individuals, and contains $0$ to $Q$ units of a generic resource. Each individual in the population can invest some variable amount of effort into two traits: $X$, within-group cooperation; and, $Y$, between-group conflict. 
 
-In our model we sought to understand the link between resource richness for an cooperative group and their resulting investments into two social traits. The first trait is a cooperative trait modelled as a simple public good which helped all member of the patch to survive for longer ($\mathbf{X}$). The second is a competitive trait modelled as a simple blind bid game the winning group then gaining control of one of the loser's resources ($\mathbf{Y}$). 
+The state of the population at any given time is characterised by the frequencies of each possible group state $\{q, n\}$, where $q$ is the number of resources the group has and $n$ is the number of individuals in the group. This forms a matrix $\mathbf{F}_{q\times n}$ where each entry $f_{q,n}$ is the frequency of that state amongst groups in the population. The traits of cooperation ($X$) and conflict ($Y$) are also defined as $q\times n$ matrices where each entry is the strategy an actor plays in that state. 
 
-We modeled an infinite population consisting of individual patches. A patch is identified by its quality level, $q \in \mathbb{Z} : q \in \left[ 1, Q \right]$, and the number of individuals on the patch, $n \in \mathbb{Z} : n \in \left[ 0, N \right]$. Where the maximum quality, $Q$, and maximum group size, $N$, are predetermined parameters. 
+We model the demographic and ecological dynamics of the population in continuous time. The frequencies of the different group states is altered by various events which are summarised below (see \cref{app:model}):
 
-The distribution of patches in the population can therefore be described by a $q \times n$ matrix $\mathbf{F}$ with elements $f_{q,n}$. Equally, the evolved strategies of cooperation, $\mathbf{X}$, and conflict, $\mathbf{Y}$ are matrices which indicate the strategy of individual in state $\{q, n\}$. 
+\begin{description}
+    \item[Resource loss and gain ---] Resources appear an disappear from groups. The rate at which resources are lost or gained is derived from the environmental harshness and the persistence of resources and is independent of group state. Resources are not consumed by the individuals in a group but give the same benefit to all members of the group equally regardless of group state.  
+    \item[Deaths ---] Individuals die at a base mortality rate unaffected by state. Investment into either cooperation or conflict increases that risk of death. However, mortality for all group members is reduced by the group level investment into cooperation. 
+    \item[Births ---] There is a base per capita reproductive rate which increases by each resource an individual has access to with a density dependent effect. If a group has reached it's maximum size only dispersing offspring survive. Offspring disperse to any other group in the population at random. 
+    \item[Fights ---] Groups encounter other groups based on their frequencies and a constant encounter rate. When two group encounter one another there is a fight decided by a Tullock contest. The winner then takes one resource from the loser, if the winner doesn't already control the maximum number of resources and the loser has a resource to lose.  
+\end{description}
+% Cooperation in the model reduces mortality for the actor and all other members of the group in exchange for a private cost of increased mortality for the actor. The effort into conflict is summed for all group members and that total effort is compared between two fighting groups to determine the winner. Winners claim a resource from the losing group unless the loser has no resource to give or the winner has reached the maximum resource level. 
 
-To find the stable distribution of patch frequencies we first derived the equations for how frequencies change in the model. We constructed a matrix $\mathbf{F}'$ which describes how demographic processes and between patch interactions affect the frequency of each patch type.
+% The environment is modelled using two parameters. Harshness ($\theta$) and resource stagnation ($\gamma$). Harshness is the chance that a change in resources results in the loss of a resource and resource stagnation is the average time between an event that changes resource levels. These are environmental parameters and are assumed to be unchanging during a simulation and outside of an individuals control. 
 
-\subsection{Environmental transitions}
-The environment may gain and lose resources naturally through variation in various abiotic and biotic factors that are not controllable by the individuals we model. This represents the natural gain and loss from the environment.
+% Resources are immutable and give the same benefit to every member of a group they are not divided or shared. Resources benefit individuals by increasing the number of offspring an individual produces.
+ 
 
+
+\subsection{Key variables}
+In the results section several key variables are varied: migration ($d$), 
+encounter rate ($\epsilon$), environmental harshness ($\theta$), and resource persistence ($\gamma$).
+The details of the simulation we have included in \cref{app:model}. However, we include below a brief summary of the biological significance of the varied parameters and their affect on group states. 
+\begin{description}
+    \item[migration rate ($d$)] The proportion of young that disperse from their natal patch, $d \in [0,1]$. This strongly determines within group relatedness as $d\rightarrow0$ relatedness increases within the group.
+    \item[encounter rate ($\epsilon$)] The rate at which two groups encounter each other, we assume the law of mass action and weight each mass action term by $\epsilon$. In the simulations this was varied on a 
+    logarithmic scale  $\epsilon \in \{0.0625,\allowbreak 0.125, 0.25, 0.5, 1, 2, 4, 8, 16\}$.
+    \item[environmental harshness ($\theta$)] Resources in the simulation can be gained or lost outside opf fights through chance. This abstracts away many abiotic and biotic factors. Harshness is the proportion of all loss or gain events that are loss events, $\theta \in [0,1]$. A harshness close of $0.5$ is a environment where gain or loss are equally likely. Whereas a harshness close to $0$ (resource gain is more common than loss) is a very bountiful environment and harshness close to $1$ (resource loss is more common than gain) is extremely desolate. 
+    \item[resource persistence ($\gamma$)] The average time to event until a patch experiences a change in resources, either gain or loss, $\gamma \in \mathbb{N^\ast}$. High values lead to a unchanging environment where groups inherit very stable resource levels. Whereas low values lead to rapidly changing resource levels with respect to the harshness level.   
+\end{description}
+
+\subsection{Evolving traits}
+In the model we focus on two key traits that determine an individuals behaviour. Cooperation $X$ represents a public good trait with some private benefit that directly reduces mortality for all member of a group. This could be though of as a provisioning behaviour or alarm call. Conflict $Y$ is another social trait which represents investment or participation in intergroup conflicts. The group total of $Y$ is used as a measure of group effort to resolve conflicts: 
 \begin{align}
-    E_{q,n} = \sum^Q_{q_1=1} \sum^Q_{q_2=1}  t_{q_2, q_1} f_{q_2, n} - t_{q_1, q_2} f_{q_1, n} \,
+    P(\text{victory}) = \frac{\sum Y_1 + \delta}{\sum Y_1 + \sum Y_2 + 2\delta}\,.
 \end{align}
+Where, $Y_i$ is the set of individual investments for group $i$ and $\delta$ is a very small error term to prevent division by zero and when both parties invest zero the probability of victory is $0.5$ $\left(\frac{\delta}{2\delta}\right)$. 
 
-where, $E$ is the matrix of changes due to environment, $\mathbf{T}$ is a $q \times q$ matrix with entries being this environmental rate of change. In our model we further specified that the matrix $\mathbf{T}$ is a sparse matrix with a subdiagonal where all entries equal to some gain value and a superdiagonal where all values equal to a loss value. This ensures gains and losses happen in stepwise manner and patches may not gain or lose more than one resource at once.
+\subsubsection{Effect of cooperation (X)}
 
-\subsection{Natural mortality}
-Death may occur through natural causes at any time causing a patch to lose members. We modelled beth the cooperative and competitive traits as causing a cost to survival. The cooperative trait however offset that cost by reducing overall mortality on the patch based on the average cooperation level. This gives the matrix $M$ as the changes in frequency due to mortality events:
-
+The trait $\mathbf{X}$ determines the within group cooperation in the model. Cooperation decreases the mortality of all individuals in a patch by the sum of the total cooperation in the patch. Given a certain state $\{q, n\}$ the mortality of individuals in that state will be:
 \begin{align}
-    M_{q,n} &= \sum^N_{n=1} (n+1) f_{q, n+1} m_{q, n+1} - n\ f_{q, n} m_{q, n}\ , \\
-    \text{where, }&\nonumber\\ 
-    m_{q,n} &= B\,\exp\left( -n \left( \frac{n\ x_{q,n}}{n} \right) \right) + \mu_x x_{q,n}^2 + \mu_y y_{q,n}^2\ .
+    M_{q,n} = \mu_B * \exp\left(-\left(n-1 \right)x^l_{q,n} - x^f_{q,n}\right) + \mu_X \left( x^f_{q,n} \right)^2 + \mu_Y \left( y^f_{q,n} \right)^2\,.
 \end{align}
+Where, $\mu_B$ represents a baseline mortality which is offset by investment into $x^f$ by the focal individual and $x^l$ by the other group members. There is a personal direct benefit to cooperation as well as a public benefit so production of the good by solo individuals is still favoured. Investment in state $\{q,n\}$ results in mortality increasing by the last two terms which cause an accelerating cost as investment increases. 
 
-\subsection{Local Births}
-In patches with at least one individual that are not at the maximum group size $N$ there can be birth events. Which are modelled by matrix $B$:
+\subsubsection{Effect of conflict (Y)}
 
+The trait $\mathbf{Y}$ is the effort an individual puts in to winning a fight between groups. Groups fight over resources and the losing group is forced to relinquish one unit of resource to the winning group. Unless it is the groups last remaining resource or the winner already holds the maximum number of resources possible in which cases a fight has no effect. The chance a group in state $\{q,n\}$ wins against a group in state $\{q',n'\}$ is given by:
 \begin{align}
-    B_{q,n} = \sum^Q_{q=1} \sum^N-1_{n=1}
+    V(q, n, q', n') = \frac{y^f_{q,n} + (n-1)y^l_{q,n} + \delta}{y^f_{q,n} + (n-1)y^l_{q,n} + n'y_{q',n'} + 2\delta}\,.
 \end{align}
+Where, $\epsilon$ is a very small quantity that ensures division by zero does not occur and if neither side invests in the conflict the outcome is random (in simulations $\delta = 10^{-8}$). 
+
+\section{Results}
+\subsection{Effect of harshness on Cooperation and Conflict.}
+\begin{figure}[th]
+    \includegraphics[scale=0.8]{../graphs/traits_with_harshness.pdf}
+    \caption{}
+    \label{fig:traits_harshness}
+\end{figure}
+\begin{figure}
+    \centering
+    \begin{subfigure}[b]{.49\linewidth}
+      \centering
+      \includegraphics[width = \linewidth]{../graphs/fights.pdf}
+      \caption{}
+    \end{subfigure}\hfill
+    \begin{subfigure}[b]{.49\linewidth}
+      \centering  
+      \includegraphics[width = \linewidth]{../graphs/wealth_dist.pdf}
+      \caption{}
+    \end{subfigure}
+    \caption{}
+    \label{fig:relatedness}
+  \end{figure}
+Starting from a completely benign environment both cooperation and conflict are at their minimum evolved levels (fig1\todo{link and make}). As harshness increases both cooperation and conflict increase in an accelerating way. Cooperation continues to increase so in very harsh environments populations evolve to cooperate the most. However, conflict investment peaks at just after $0.5$ harshness when the more resources are lost than gained overall.  
+
+This intermediate maximisation of conflict is due to the effects on harshness on the distribution of group sizes. Harsh environments skew populations towards many poor groups. This means encounters are predominantly between groups that do not have resources and so conflict is not favoured. Equally in benign environments te distribution of groups is heavily skewed to rich groups meaning encounters are predominantly between groups that cannot gain more resources and so conflict is also low. 
+
+Despite this shift from poor to rich populations being largely symmetrical around harshness $0.5$ reduction in conflict occurs alter around $0.6$. This occurs because resource value does continue to increase with harshness so though the number of fights is maximised at exactly harshness $0.5$ the resource value drives fighting up until around harshness $0.6$ when investment starts to decline as the populations shift to extreme poverty. 
+
+\subsection{Effect of encounter rate on Cooperation and Conflict}
+\begin{figure}[th]
+    \includegraphics[scale=0.8]{../graphs/traits_with_encounter.pdf}
+    \caption{}
+    \label{fig:traits_encounter}
+\end{figure}
+The encounter rate between groups had a strong effect on the evolution of conflict but a smaller effect on cooperation. As encounter rate increases there is a marked increase into investment in conflict. This increase does saturate though as high encounter rates mean resources become worthless as they cannot be retained. This leads to a maximum encounter rate beyond which conflict no longer is selected to increase further. Cooperation increases slightly with encounter rate but on a much smaller relative scale. 
+
+\subsection{Group wealth and size}
+In the simulations groups are defined by two factors th number of individuals in the group (size) and the number of resources they control (wealth). Through conflict groups can increase their wealth and indirectly their size through reproduction. Also through cooperation groups can prevent mortality and grow in size and their perform better in fights. 
+
+\begin{figure}[th]
+    \includegraphics[scale=0.8]{../graphs/conflict_with_quality.pdf}
+    \caption{}
+    \label{fig:conflict_quality}
+\end{figure}
+
+\Cref{fig:conflict_quality} shows how conflict is expressed across wealth levels for different environmental harshnesses. In benign (low harshness) environments conflict decreases with quality level as most groups are rich and rich groups can't lose resources to other rich groups. As harshness decreases conflict increases as the frequency of the different quality levels evens out. Then at high harshnesses the population flips completely to being mostly poor groups that again cannot lose resources to other poor groups and don't have any rich groups to prey upon. This leads to low conflict in small groups and high conflict in rich groups. So in harsh environments rich groups are high in conflict to protect themselves against the poor groups that predominate and in benign environments poor groups are the most aggressive to prey upon the rich groups that predominate. 
+
+\begin{figure}[th]
+    \includegraphics[scale=0.8]{../graphs/traits_with_size.pdf}
+    \caption{} 
+    \label{fig:traits_size}
+\end{figure}
+
+\begin{figure}[th]
+    \includegraphics[scale=0.8]{../graphs/grouptraits_with_size.pdf}
+    \caption{} 
+    \label{fig:grouptraits_size}
+\end{figure}
+
+Group size has a negative correlation with individual investment in both conflict and cooperation (\cref{fig:traits_size}). The group level investment in cooperation increases with group size, whereas the group total investment in conflict decreases(\cref{fig:grouptraits_size}). Cooperation in the model has a private benefit which leads to a high per capita investment independent of the group. However, conflict is a public good so in large groups with lower relatednesses individuals decrease their contributions dramatically.
+
+% \subsection{Response to change}
+
+% \begin{figure}[th]
+%     \includegraphics[scale=0.8]{../graphs/perturb_conflict.pdf}
+%     \caption{} 
+%     \label{fig:perturb_conflict.pdf}
+% \end{figure}
+
+% \begin{figure}[th]
+%     \includegraphics[scale=0.8]{../graphs/perturb_cooperation.pdf}
+%     \caption{} 
+%     \label{fig:perturb_cooperation.pdf}
+% \end{figure}
+
+% The data shown so far have been grpahs of populatins that are perfectly adapted to their environment. However, in real world sitautions we might expect evolutionary processes to occur more slowly than evolutionary ones. \Cref{fig:perturb_conflict.pdf} and \cref{fig:perturb_cooperation.pdf} show the effect of taking a population evolved for a certain environmental harshness and shifting their environment to be more benign or harsh. The effect on change in expressed cooperation or conflict is measured. For cooperation the effect is simple when populations are exposed to increasing harshness the expressed cooperation increases and when exposed to harsher conditons it decreases (\cref{fig:perturb_cooperation.pdf}). For conflict the change is not so symmetrical. Populations evolved to harshnesses above some critical value between harshness $0.5$ and $0.6$ when exposed to more benign conditions increase their level of conflict and when exposed to harsher conditions decrease it. Conversely, populations evolved in a benign environmen below some critical value in the range $0.5 - 0.6$ harshness show increased conflict with increasing harshness and decreased aggression with decreasing harshness. A third regime exists in range of values of harshness $0.5-0.6$ where both increasing and decreasing harshness lead to decreased conflict in the population. 
+
