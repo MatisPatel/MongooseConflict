@@ -2,10 +2,32 @@ using ModelingToolkit
 using NLsolve
 using Symbolics
 using DrWatson
+using BSON
 
 #for testing ONLY 
-ENV["SLURM_ARRAY_TASK_ID"] = 10
-world = load(joinpath("tempDicts", string(ENV["SLURM_ARRAY_TASK_ID"], ".bson")))
+# ENV["SLURM_ARRAY_TASK_ID"] = 10
+# world = load(joinpath("tempDicts", string(ENV["SLURM_ARRAY_TASK_ID"], ".bson")))
+
+world = Dict{Symbol, Any}(
+    :nGens => 1,
+    :realGen => 100,
+    :worldSize => [3,3],
+    :ratio => 0.5,
+    :stab => 5,
+    :fixed => [1,2],
+    :q => 3,
+    :n => 3,
+    :gain => 0.1,
+    :loss => 0.1,
+    :basem => 0.1,
+    :k => 0.1,
+    :b => 0.3,
+    :d => 0.1,
+    :epsilon => 5,
+    :multX => 0.1,
+    :multY => 0.1,
+    :force => 0.2
+)
 
 @variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
 
@@ -34,31 +56,6 @@ world[:size] = world[:n]*world[:q]
     Yf[1:world[:q], 1:world[:n]]
     Xl[1:world[:q], 1:world[:n]]
     Yl[1:world[:q], 1:world[:n]]
-end
-
-
-# world = Dict{Symbol, Any}(
-#     :nGens => 500,
-#     :q => 5,
-#     :n => 3,
-#     :gain => 0.1,
-#     :loss => 0.1,
-#     :basem => 0.1,
-#     :k => 0.1,
-#     :b => 0.3,
-#     :d => 0.1,
-#     :epsilon => 5,
-#     :multX => 0.1,
-#     :multY => 0.1,
-#     :force => 0.2
-# )
-
-function matSub(pairs...)
-    pairList = []
-    for pair in pairs
-        push!(pairList, vec(reshape(pair, (length(pair), 1))))
-    end
-    return (collect(Iterators.flatten((pairList))),)
 end
 
 function makeFArray(world)
@@ -554,22 +551,22 @@ function makeModelExpr(world)
 end
 
 function updateMPC(world, modelM, modelP, modelC, modelMl, modelPl, modelCl)
-    world[:M] = Symbolics.value.(substitute.(modelM, (vcat([B=>world[:basem]], matSub(X.=>world[:tX], Y.=>world[:tY])[1]),))) 
+    world[:M] = Symbolics.value.(substitute(modelM, Dict([B=>world[:basem], X => world[:tX], Y => world[:tY]]))) 
     world[:P] = Symbolics.value.(modelP)
-    world[:C] = Symbolics.value.(substitute.(modelC, matSub(Y.=>world[:tY])))
+    world[:C] = Symbolics.value.(substitute(modelC, Dict([Y => world[:tY]])))
     world[:Mf] = world[:M]
     world[:Pf] = world[:P]
     world[:Cf] = world[:C]
-    world[:Ml] = Symbolics.value.(substitute.(modelMl, 
-        (vcat([B=>world[:basem]], 
-        matSub(
-            Xf.=>world[:tX], 
-            Xl.=>world[:tX], 
-            Yl.=>world[:tY],
-            )[1]),)
+    world[:Ml] = Symbolics.value.(substitute(modelMl, 
+        Dict([
+            B => world[:basem], 
+            Xf => world[:tX], 
+            Xl => world[:tX], 
+            Yl => world[:tY],  
+        ])
     ))
     world[:Pl] = Symbolics.value.(modelPl)
-    world[:Cl] = Symbolics.value.(substitute.(modelCl, matSub(Yl.=>world[:tY])))
+    world[:Cl] = Symbolics.value.(substitute(modelCl, Dict([Yl => world[:tY]])))
     return world
 end
 
@@ -583,35 +580,37 @@ end
 
 function makeSelGrads(wSysSelec, modelM, modelP, modelC, modelMf, modelMl, 
     modelPf, modelPl, modelCf, modelCl, world)
-    wSysXY = substitute.(wSysSelec, matSub(
-        Mf.=>modelMf, 
-        Ml.=>modelMl,
-        P.=>modelP, 
-        Pf.=>modelPf, 
-        Pl.=>modelPl,
-        C.=>modelC, 
-        Cf.=>modelCf, 
-        Cl.=>modelCl, 
-        ))
-    wDiffXf = Symbolics.derivative.(wSysXY, Xf)
-    wDiffXl = Symbolics.derivative.(wSysXY, Xl)
-    wDiffYf = Symbolics.derivative.(wSysXY, Yf)
-    wDiffYl = Symbolics.derivative.(wSysXY, Yl)
+    wSysXY = substitute(wSysSelec, Dict([
+        Ml =>modelMl,
+        Mf =>modelMf, 
+        P =>modelP, 
+        Pf =>modelPf, 
+        Pl =>modelPl,
+        C =>modelC, 
+        Cf =>modelCf, 
+        Cl =>modelCl, 
+    ])
+    );
+    wDiffXf = Symbolics.derivative.(wSysXY, Xf);
+    wDiffXl = Symbolics.derivative.(wSysXY, Xl);
+    wDiffYf = Symbolics.derivative.(wSysXY, Yf);
+    wDiffYl = Symbolics.derivative.(wSysXY, Yl);
     inclusiveX = wDiffXf .+ R .* wDiffXl
     inclusiveY = wDiffYf .+ R .* wDiffYl
 
-    Eq = matSub(
-        Xf.=>X, 
-        Xl.=>X, 
-        Yf.=>Y, 
-        Yl.=>Y,
-        [d].=>[world[:d]],
-        [epsilon].=>[world[:epsilon]]
+    Eq = Dict([
+        Xf =>X, 
+        Xl =>X, 
+        Yf =>Y, 
+        Yl =>Y,
+        d => world[:d],
+        epsilon  => world[:epsilon]
+    ]
     )
 
-    incXEq = substitute.(inclusiveX, Eq)
+    incXEq = substitute(Symbolics.scalarize(inclusiveX), Eq);
 
-    incYEq = substitute.(inclusiveY, Eq)
+    incYEq = substitute(Symbolics.scalarize(inclusiveY), Eq);
 
     grads = [incXEq, incYEq]
     directSel = [wDiffXf, wDiffYf]
@@ -726,9 +725,9 @@ function step(world, callFun, callFunW, callFunR,
     solR = genSolR(rFun, world)
     world[:tR] = solR.zero
 
-    gradX = substitute.(grads[1], matSub(X.=>world[:tX], Y.=>world[:tY], F.=>world[:tF], W.=>world[:tW], R.=>world[:tR]))
+    gradX = substitute(grads[1], Dict([X =>world[:tX], Y =>world[:tY], F =>world[:tF], W =>world[:tW], R =>world[:tR]]))
 
-    gradY = substitute.(grads[2], matSub(X.=>world[:tX], Y.=>world[:tY], F.=>world[:tF], W.=>world[:tW], R.=>world[:tR]))
+    gradY = substitute(grads[2], Dict([X =>world[:tX], Y =>world[:tY], F =>world[:tF], W =>world[:tW], R =>world[:tR]]))
 
     world[:gradX] = Symbolics.value.(gradX)
     world[:gradY] = Symbolics.value.(gradY)
@@ -781,16 +780,12 @@ function runSim(world)
         );
     callFun = eval(funF[2]);
 
-    rSys = makeRsys(R, M, P, C, d, world)
-    R2 = copy(R);
-    [R2[p, 1] = 0 for p in 1:world[:q]];
-    [R2[p, 2] = 0 for p in 1:world[:q]];
-    rSys = substitute.(rSys, matSub(R.=>R2))
-    for q in 1:world[:q]
-        for n in 1:2
-            rSys[q, n] = R[q, n]
-        end 
-    end 
+    rSys = Symbolics.scalarize(makeRsys(R, M, P, C, d, world));
+    # R2 = collect(Symbolics.value.(R));
+    # [R2[p, 1] = 0.0 for p in 1:world[:q]];
+    # [R2[p, 2] = 0.0 for p in 1:world[:q]];
+    rSys = substitute(rSys, Dict(vcat([R[p, 1]=> 0 for p in 1:world[:q]], [R[p, 2]=> 0 for p in 1:world[:q]])))
+
     funR = ModelingToolkit.build_function(
         rSys, R, F, M, P, C, d, epsilon;
         expression=Val{false}
@@ -798,16 +793,16 @@ function runSim(world)
     callFunR = eval(funR[2]);
 
     # create W system 
-    wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
+    wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world);
 
     # wSys[world[:fixed]...] = 1-W[world[:fixed]...]
     numInds = reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'
-    wSys[world[:fixed][1], world[:fixed][2]] = Symbolics.scalarize(1 - sum((W.*F.*numInds)./sum(F.*numInds))
+    wSys[world[:fixed][1], world[:fixed][2]] = Symbolics.scalarize(1 - sum((W.*F.*numInds)./sum(F.*numInds)))
 
     for q in 1:world[:q]
         wSys[q, 1] = W[q,1]
     end
-    wSysSelec = Wn./Wd
+    wSysSelec = Symbolics.scalarize(Wn./Wd);
     funW = ModelingToolkit.build_function(
         wSys, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
         expression=Val{false}
@@ -830,9 +825,9 @@ function runSim(world)
             world[:itr] = i
             break
         end
-        if i%1000 == 0
-            save(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), world)
-        end
+        # if i%1000 == 0
+        #     save(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), world)
+        # end
     end
     return world
 end
