@@ -56,26 +56,26 @@ Where, $\epsilon$ is a very small quantity that ensures division by zero does no
 
 \section{Results}
 \subsection{Effect of harshness on Cooperation and Conflict.}
-\begin{figure}[th]
-    \includegraphics[scale=0.8]{../graphs/traits_with_harshness.pdf}
-    \caption{}
-    \label{fig:traits_harshness}
-\end{figure}
-\begin{figure}
-    \centering
-    \begin{subfigure}[b]{.49\linewidth}
-      \centering
-      \includegraphics[width = \linewidth]{../graphs/fights.pdf}
-      \caption{}
-    \end{subfigure}\hfill
-    \begin{subfigure}[b]{.49\linewidth}
-      \centering  
-      \includegraphics[width = \linewidth]{../graphs/wealth_dist.pdf}
-      \caption{}
-    \end{subfigure}
-    \caption{}
-    \label{fig:relatedness}
-  \end{figure}
+% \begin{figure}[th]
+%     \includegraphics[scale=0.8]{../graphs/traits_with_harshness.pdf}
+%     \caption{}
+%     \label{fig:traits_harshness}
+% \end{figure}
+% \begin{figure}
+%     \centering
+%     \begin{subfigure}[b]{.49\linewidth}
+%       \centering
+%       \includegraphics[width = \linewidth]{../graphs/fights.pdf}
+%       \caption{}
+%     \end{subfigure}\hfill
+%     \begin{subfigure}[b]{.49\linewidth}
+%       \centering  
+%       \includegraphics[width = \linewidth]{../graphs/wealth_dist.pdf}
+%       \caption{}
+%     \end{subfigure}
+%     \caption{}
+%     \label{fig:relatedness}
+%   \end{figure}
 Starting from a completely benign environment both cooperation and conflict are at their minimum evolved levels (fig1\todo{link and make}). As harshness increases both cooperation and conflict increase in an accelerating way. Cooperation continues to increase so in very harsh environments populations evolve to cooperate the most. However, conflict investment peaks at just after $0.5$ harshness when the more resources are lost than gained overall.  
 
 This intermediate maximisation of conflict is due to the effects on harshness on the distribution of group sizes. Harsh environments skew populations towards many poor groups. This means encounters are predominantly between groups that do not have resources and so conflict is not favoured. Equally in benign environments te distribution of groups is heavily skewed to rich groups meaning encounters are predominantly between groups that cannot gain more resources and so conflict is also low. 
@@ -83,35 +83,35 @@ This intermediate maximisation of conflict is due to the effects on harshness on
 Despite this shift from poor to rich populations being largely symmetrical around harshness $0.5$ reduction in conflict occurs alter around $0.6$. This occurs because resource value does continue to increase with harshness so though the number of fights is maximised at exactly harshness $0.5$ the resource value drives fighting up until around harshness $0.6$ when investment starts to decline as the populations shift to extreme poverty. 
 
 \subsection{Effect of encounter rate on Cooperation and Conflict}
-\begin{figure}[th]
-    \includegraphics[scale=0.8]{../graphs/traits_with_encounter.pdf}
-    \caption{}
-    \label{fig:traits_encounter}
-\end{figure}
+% \begin{figure}[th]
+%     \includegraphics[scale=0.8]{../graphs/traits_with_encounter.pdf}
+%     \caption{}
+%     \label{fig:traits_encounter}
+% \end{figure}
 The encounter rate between groups had a strong effect on the evolution of conflict but a smaller effect on cooperation. As encounter rate increases there is a marked increase into investment in conflict. This increase does saturate though as high encounter rates mean resources become worthless as they cannot be retained. This leads to a maximum encounter rate beyond which conflict no longer is selected to increase further. Cooperation increases slightly with encounter rate but on a much smaller relative scale. 
 
 \subsection{Group wealth and size}
 In the simulations groups are defined by two factors th number of individuals in the group (size) and the number of resources they control (wealth). Through conflict groups can increase their wealth and indirectly their size through reproduction. Also through cooperation groups can prevent mortality and grow in size and their perform better in fights. 
 
-\begin{figure}[th]
-    \includegraphics[scale=0.8]{../graphs/conflict_with_quality.pdf}
-    \caption{}
-    \label{fig:conflict_quality}
-\end{figure}
+% \begin{figure}[th]
+%     \includegraphics[scale=0.8]{../graphs/conflict_with_quality.pdf}
+%     \caption{}
+%     \label{fig:conflict_quality}
+% \end{figure}
 
 \Cref{fig:conflict_quality} shows how conflict is expressed across wealth levels for different environmental harshnesses. In benign (low harshness) environments conflict decreases with quality level as most groups are rich and rich groups can't lose resources to other rich groups. As harshness decreases conflict increases as the frequency of the different quality levels evens out. Then at high harshnesses the population flips completely to being mostly poor groups that again cannot lose resources to other poor groups and don't have any rich groups to prey upon. This leads to low conflict in small groups and high conflict in rich groups. So in harsh environments rich groups are high in conflict to protect themselves against the poor groups that predominate and in benign environments poor groups are the most aggressive to prey upon the rich groups that predominate. 
 
-\begin{figure}[th]
-    \includegraphics[scale=0.8]{../graphs/traits_with_size.pdf}
-    \caption{} 
-    \label{fig:traits_size}
-\end{figure}
+% \begin{figure}[th]
+%     \includegraphics[scale=0.8]{../graphs/traits_with_size.pdf}
+%     \caption{} 
+%     \label{fig:traits_size}
+% \end{figure}
 
-\begin{figure}[th]
-    \includegraphics[scale=0.8]{../graphs/grouptraits_with_size.pdf}
-    \caption{} 
-    \label{fig:grouptraits_size}
-\end{figure}
+% \begin{figure}[th]
+%     \includegraphics[scale=0.8]{../graphs/grouptraits_with_size.pdf}
+%     \caption{} 
+%     \label{fig:grouptraits_size}
+% \end{figure}
 
 Group size has a negative correlation with individual investment in both conflict and cooperation (\cref{fig:traits_size}). The group level investment in cooperation increases with group size, whereas the group total investment in conflict decreases(\cref{fig:grouptraits_size}). Cooperation in the model has a private benefit which leads to a high per capita investment independent of the group. However, conflict is a public good so in large groups with lower relatednesses individuals decrease their contributions dramatically.
 
