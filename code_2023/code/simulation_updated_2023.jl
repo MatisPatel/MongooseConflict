@@ -722,7 +722,12 @@ function step(world, callFun, callFunW, callFunR,
     solW = genSolW(wFun, world)
     world[:tW] = solW.zero
 
-    solR = genSolR(rFun, world)
+    # solR = zeros(world[:q], world[:n])
+    # try 
+    #     solR = genSolR2(rFun, world)
+    # catch
+        solR = genSolR(rFun, world)
+    # end 
     world[:tR] = solR.zero
 
     gradX = substitute(grads[1], Dict([X =>world[:tX], Y =>world[:tY], F =>world[:tF], W =>world[:tW], R =>world[:tR]]))
@@ -819,7 +824,7 @@ function runSim(world)
             )
         err = sum(corrErr(world[:gradX], world[:tX]) +
         corrErr(world[:gradY], world[:tY]))
-        println(i, " --- ",  err)
+        # println(i, " --- ",  err)
         world[:err] = err
         if err < 1E-6
             world[:itr] = i
@@ -878,12 +883,14 @@ function testRatios!(resWorld)
     return resWorld
 end
 
-function produceSim(world)
+function produceSim(world, save=false)
     name = savename(world)
     println(name)
     res = runSim(world)
-    # safesave(joinpath("..", "data", savename(world, "bson")), res)
-    # println(res[:err], " --- ", name)
+    if save == true
+        safesave(joinpath("..", "data", savename(world, "bson")), res)
+    end
+    println(res[:err], " --- ", name)
     return res
 end
 
