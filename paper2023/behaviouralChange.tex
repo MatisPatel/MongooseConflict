@@ -1,0 +1,43 @@
+\documentclass[12pt]{article}
+
+\usepackage[backend=biber,style=authoryear]{biblatex}
+\addbibresource{mongoose.bib}
+
+
+\title{Behavioural responses to a changing evironment}
+
+\author{
+  Matishalin Patel\\
+  Department of Biology \\
+  University of Hull \\
+  \texttt{Matishalin.Patel@hull.ac.uk} \\
+  \and
+  Michael A. Cant \\
+  Centre for Ecology and Conservation\\
+  University of Exeter \\
+  \texttt{M.A.Cant@exeter.ac.uk} \\
+  \and
+  Rufus A. Johnstone\\
+  Department of Zoology\\
+  University of Cambridge \\
+  \texttt{raj1003@cam.ac.uk} \\
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  Lorem ipsum \cite{downing_group_2020} \parencite{bowles_did_2009}
+\end{abstract}
+\let\clearpage\relax
+\include{Introduction}
+
+\include{Model}
+
+\include{Discussion}
+
+\printbibliography
+
+\include{Appendix}
+\end{document}
+
