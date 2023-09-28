@@ -10,13 +10,11 @@ using BSON
 
 world = Dict{Symbol, Any}(
     :nGens => 1,
-    :realGen => 10,
+    :realGen => 3,
     :worldSize => [3,3],
     :ratio => 0.5,
     :stab => 5,
     :fixed => [1,2],
-    :q => 3,
-    :n => 3,
     :gain => 0.1,
     :loss => 0.1,
     :basem => 0.1,
@@ -26,7 +24,10 @@ world = Dict{Symbol, Any}(
     :epsilon => 5,
     :multX => 0.1,
     :multY => 0.1,
-    :force => 0.2
+    :step_size_max => 0.1, 
+    :step_size_min => 1E7,
+    :inc_factor => 1.2,
+    :dec_factor => 0.5,
 )
 
 @variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
@@ -35,6 +36,10 @@ world = Dict{Symbol, Any}(
 world[:q] = world[:worldSize][1] 
 world[:n] = world[:worldSize][2] 
 world[:size] = world[:n]*world[:q] 
+world[:gradX] = zeros(world[:q], world[:n])
+world[:gradY] = zeros(world[:q], world[:n])
+world[:step_size_x] = zeros(world[:q], world[:n])
+world[:step_size_y] = zeros(world[:q], world[:n])
 
 @variables begin 
     F[1:world[:q], 1:world[:n]]
@@ -223,7 +228,7 @@ function addDistantBirth(Wn, Wd, W, F, Pf, world)
 end
 
 function addImmigration(Fp, F, P, d, world)
-    pbar = sum(F.*P * [n-1 for n in 1:world[:n]])
+    pbar = sum( F.*P * [n-1 for n in 1:world[:n]])
     for q in 1:world[:q]
         for n in 1:world[:n]-1
             Fp[q, n] -= d * pbar * F[q, n]
@@ -652,6 +657,7 @@ end
 function genSolR(rFun, world)
     return nlsolve(
         rFun,
+        transpose(
             reshape(
                 repeat(
                     vcat([0, 0], [1/p for p in 2:(world[:n]-1)]), 
@@ -660,6 +666,7 @@ function genSolR(rFun, world)
                 (world[:q], world[:n])
             )
         )
+    )
 end
 
 function corrErr(g, t)
@@ -734,18 +741,25 @@ function step(world, callFun, callFunW, callFunR,
 
     gradY = substitute(grads[2], Dict([X =>world[:tX], Y =>world[:tY], F =>world[:tF], W =>world[:tW], R =>world[:tR]]))
 
+    world[:tgradX] = world[:gradX]
+    world[:tgradY] = world[:gradY]
     world[:gradX] = Symbolics.value.(gradX)
     world[:gradY] = Symbolics.value.(gradY)
 
-    world[:tX] = clamp.(
-        world[:tX] .+ world[:force]*clamp.(world[:gradX], -1, 1),
-        # clamp.(world[:force]*world[:gradX], -world[:force], world[:force]), 
-        0,
-        1
-    )
+    (world[:step_size_x], world[:signs_x]) = update_step_size(world[:tgradX], world[:gradX], world[:step_size_x], world)
+    (world[:step_size_y], world[:signs_y]) = update_step_size(world[:tgradY], world[:gradY], world[:step_size_y], world)
+
+    world[:tX] = clamp.(world[:tX], 0, 1) 
+    # world[:tY] = clamp.(world[:tY] .+ world[:step_size_y] .* world[:signs_y], 0, 1)
+    # world[:tX] = clamp.(
+    #     world[:tX] .+ world[:step_size_max]*clamp.(world[:gradX], -1, 1),
+    #     # clamp.(world[:force]*world[:gradX], -world[:force], world[:force]), 
+    #     0,
+    #     1
+    # )
 
     world[:tY] = clamp.(
-        world[:tY] .+ world[:force]*clamp.(world[:gradY], -1, 1),
+        world[:tY] .+ world[:step_size_max]*clamp.(world[:gradY], -1, 1),
         # clamp.(world[:force]*world[:gradY], -world[:force], world[:force]), 
         0,
         1
@@ -755,7 +769,6 @@ function step(world, callFun, callFunW, callFunR,
 end
 
 function runSim(world)
-    cosm = deepcopy(world)
     world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
     world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
 
@@ -824,7 +837,9 @@ function runSim(world)
             )
         err = sum(corrErr(world[:gradX], world[:tX]) +
         corrErr(world[:gradY], world[:tY]))
-        # println(i, " --- ",  err)
+        if world[:verbose]
+            println(i, " --- ",  err)
+        end
         world[:err] = err
         if err < 1E-6
             world[:itr] = i
@@ -916,3 +931,18 @@ end
 #     finalWorld = testRatios!(resWorld)
 #     # save(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), finalWorld)
 # end
+
+function update_step_size(prev_grad, curr_grad, step_size, world)
+    println(prev_grad, curr_grad)
+    signs = sign.(curr_grad .* prev_grad)
+    for i in 2:world[:q]
+        for j in 2:world[:n] 
+            if signs[i, j] > 0 
+                step_size[i, j] = min(step_size[i,j] * world[:inc_factor], world[:step_size_max]) 
+            elseif signs[i, j] < 0 
+                step_size[i, j] = max(step_size[i,j] * world[:dec_factor], world:[:step_size_min])
+            end
+        end
+    end
+    return step_size, signs
+end
