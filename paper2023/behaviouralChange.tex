@@ -1,6 +1,7 @@
 \documentclass[12pt]{article}
 
 \usepackage[backend=biber,style=authoryear]{biblatex}
+\usepackage{setspace}
 \addbibresource{mongoose.bib}
 
 
@@ -27,10 +28,11 @@
 \maketitle
 
 \begin{abstract}
-  Lorem ipsum \cite{downing_group_2020} \parencite{bowles_did_2009}
+  Lorem ipsum \cite{downingGroupFormationEvolutionary2020} \parencite{bowlesDidWarfareAncestral2009}
 \end{abstract}
-\let\clearpage\relax
-\include{Introduction}
+\doublespacing 
+
+\input{Introduction.tex}
 
 \include{Model}
 
