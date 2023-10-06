@@ -3,9 +3,9 @@ using Distributed
 using BenchmarkTools
 world = Dict{Symbol, Any}(
     :nGens => 100,
-    :worldSize => [[4, 4]],
-    :ratio => 0.25,
-    :stab => 5,
+    :worldSize => [[3, 3]],
+    :ratio => collect(0.1:0.1:0.9)),
+    :stab => [4, 8],
     :fixed => [[1,2]],
     :gain => 0.1,
     :loss => 0.1,
@@ -13,7 +13,7 @@ world = Dict{Symbol, Any}(
     :k => 0.1,
     :b => 0.3,
     :d => 0.1,
-    :epsilon => 1,
+    :epsilon => [1, 2],
     :multX => 0.1,
     :multY => 0.1,
     :grad_rate => 0.1,

@@ -1,4 +1,4 @@
-using ModelingToolkit 
+# using ModelingToolkit 
 using NLsolve
 using Symbolics
 using DrWatson
@@ -11,7 +11,7 @@ using BSON
 world = Dict{Symbol, Any}(
     :nGens => 1,
     :realGen => 3,
-    :worldSize => [3,3],
+    :worldSize => [3, 3],
     :ratio => 0.5,
     :stab => 5,
     :fixed => [1,2],
@@ -24,10 +24,9 @@ world = Dict{Symbol, Any}(
     :epsilon => 5,
     :multX => 0.1,
     :multY => 0.1,
-    :step_size_max => 0.1, 
-    :step_size_min => 1E7,
-    :inc_factor => 1.2,
-    :dec_factor => 0.5,
+    :grad_rate => 0.1,
+    :learning_rate => 0.01,
+    :decay => 0.9,
 )
 
 @variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
@@ -40,6 +39,7 @@ world[:gradX] = zeros(world[:q], world[:n])
 world[:gradY] = zeros(world[:q], world[:n])
 world[:step_size_x] = zeros(world[:q], world[:n])
 world[:step_size_y] = zeros(world[:q], world[:n])
+world[:err_list] = zeros(world[:nGens])
 
 @variables begin 
     F[1:world[:q], 1:world[:n]]
@@ -741,16 +741,16 @@ function step(world, callFun, callFunW, callFunR,
 
     gradY = substitute(grads[2], Dict([X =>world[:tX], Y =>world[:tY], F =>world[:tF], W =>world[:tW], R =>world[:tR]]))
 
-    world[:tgradX] = world[:gradX]
-    world[:tgradY] = world[:gradY]
+    # world[:tgradX] = world[:gradX]
+    # world[:tgradY] = world[:gradY]
     world[:gradX] = Symbolics.value.(gradX)
     world[:gradY] = Symbolics.value.(gradY)
 
-    (world[:step_size_x], world[:signs_x]) = update_step_size(world[:tgradX], world[:gradX], world[:step_size_x], world)
-    (world[:step_size_y], world[:signs_y]) = update_step_size(world[:tgradY], world[:gradY], world[:step_size_y], world)
+    # (world[:step_size_x], world[:signs_x]) = update_step_size(world[:tgradX], world[:gradX], world[:step_size_x], world)
+    # (world[:step_size_y], world[:signs_y]) = update_step_size(world[:tgradY], world[:gradY], world[:step_size_y], world)
 
-    world[:tX] = clamp.(world[:tX], 0, 1) 
-    # world[:tY] = clamp.(world[:tY] .+ world[:step_size_y] .* world[:signs_y], 0, 1)
+    # world[:tX] = clamp.(world[:tX], 0, 1) 
+    # world[:tX] = clamp.(world[:tX] .+ world[:step_size_max] .* world[:signs_x], 0, 1)
     # world[:tX] = clamp.(
     #     world[:tX] .+ world[:step_size_max]*clamp.(world[:gradX], -1, 1),
     #     # clamp.(world[:force]*world[:gradX], -world[:force], world[:force]), 
@@ -758,12 +758,31 @@ function step(world, callFun, callFunW, callFunR,
     #     1
     # )
 
-    world[:tY] = clamp.(
-        world[:tY] .+ world[:step_size_max]*clamp.(world[:gradY], -1, 1),
+
+    if world[:err] >= 1
+
+    world[:tX] = clamp.(
+        world[:tX] .+ world[:grad_rate]*clamp.(world[:gradX], -1, 1),
         # clamp.(world[:force]*world[:gradY], -world[:force], world[:force]), 
         0,
         1
     )
+
+    world[:tY] = clamp.(
+        world[:tY] .+ world[:grad_rate]*clamp.(world[:gradY], -1, 1),
+        # clamp.(world[:force]*world[:gradY], -world[:force], world[:force]), 
+        0,
+        1
+    )
+
+    else
+        (world[:update_x], world[:cache_x]) = RMSprop_update(world[:learning_rate], world[:cache_x], world[:cache_y], world[:gradX], world[:decay])
+
+        (world[:update_y], world[:cache_y]) = RMSprop_update(world[:learning_rate], world[:cache_y], world[:cache_x], world[:gradY], world[:decay])
+
+        world[:tX] = clamp.(world[:tX] .+ world[:update_x], 0, 1)
+        world[:tY] = clamp.(world[:tY] .+ world[:update_y], 0, 1)
+    end
 
     return world
 end
@@ -771,7 +790,16 @@ end
 function runSim(world)
     world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
     world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+    # world[:tX] = Symbolics.value.(rand(world[:q], world[:n])).*0.001
+    # world[:tX][:, 1] .= 0.0
+    # world[:tY] = Symbolics.value.(rand(world[:q], world[:n])).*0.001
+    # world[:tY][:, 1] .= 0.0
 
+    world[:update_x] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+    world[:update_y] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+    world[:cache_x] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+    world[:cache_y] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+ 
     u = ones(world[:q], world[:n])
     u[:, 1] .= 0.0
     world[:tW] = u
@@ -792,7 +820,7 @@ function runSim(world)
 
     # create F system
     fSys = makeFsys(F, M, P, C, d, world)
-    funF = ModelingToolkit.build_function(
+    funF = build_function(
         fSys, F, M, P, C, d, epsilon;
         expression=Val{false}
         );
@@ -804,7 +832,7 @@ function runSim(world)
     # [R2[p, 2] = 0.0 for p in 1:world[:q]];
     rSys = substitute(rSys, Dict(vcat([R[p, 1]=> 0 for p in 1:world[:q]], [R[p, 2]=> 0 for p in 1:world[:q]])))
 
-    funR = ModelingToolkit.build_function(
+    funR = build_function(
         rSys, R, F, M, P, C, d, epsilon;
         expression=Val{false}
         );
@@ -821,7 +849,7 @@ function runSim(world)
         wSys[q, 1] = W[q,1]
     end
     wSysSelec = Symbolics.scalarize(Wn./Wd);
-    funW = ModelingToolkit.build_function(
+    funW = build_function(
         wSys, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
         expression=Val{false}
         );
@@ -841,6 +869,7 @@ function runSim(world)
             println(i, " --- ",  err)
         end
         world[:err] = err
+        world[:err_list][i] = err
         if err < 1E-6
             world[:itr] = i
             break
@@ -877,7 +906,7 @@ function testRatios!(resWorld)
 
         # create F system
         fSys = makeFsys(F, M, P, C, d, newWorld)
-        funF = ModelingToolkit.build_function(
+        funF = build_function(
             fSys, F, M, P, C, d, epsilon;
             expression=Val{false}
             );
@@ -933,7 +962,7 @@ end
 # end
 
 function update_step_size(prev_grad, curr_grad, step_size, world)
-    println(prev_grad, curr_grad)
+    # println(prev_grad, curr_grad)
     signs = sign.(curr_grad .* prev_grad)
     for i in 2:world[:q]
         for j in 2:world[:n] 
@@ -946,3 +975,14 @@ function update_step_size(prev_grad, curr_grad, step_size, world)
     end
     return step_size, signs
 end
+
+function RMSprop_update(learning_rate, cache, grad, decay)
+    cache = decay .* cache .+ (1 - decay) .* grad.^2
+    return grad .* (learning_rate ./ ((sqrt.(cache)) .+ 1E-8)), cache
+end
+
+function RMSprop_update(learning_rate, cache1, cache2, grad, decay)
+    cache1 = decay .* cache1 .+ (1 - decay) .* grad.^2
+    return grad .* (learning_rate ./ ((sqrt.(0.5.*(cache1 .+ mean(cache2)))) .+ 1E-8)), cache1
+end
+
