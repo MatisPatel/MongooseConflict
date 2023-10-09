@@ -4,7 +4,7 @@
 *.log
 *.png 
 *.pdf
-*.csv
+# *.csv
 *.zip
 
 log*.txt
