@@ -29,12 +29,29 @@ world = Dict{Symbol, Any}(
     :epsilon => 5,
     :multX => 0.1,
     :multY => 0.1,
+    :shape_X_cost => 1, 
+    :shape_Y_cost => 1,
     :grad_rate => 0.1,
     :learning_rate => 0.01,
     :decay => 0.9,
     :SolFFails => 0,
     :SolWFails => 0,
     :SolRFails => 0,
+    :saveKeys => [
+        :multX,
+        :multY,
+        :shape_X_cost,
+        :shape_Y_cost,
+        :b,
+        :k,
+        :d,
+        :q,
+        :n,
+        :decay, 
+        :epsilon, 
+        :learning_rate, 
+        :ratio, 
+        :stab,]
 )
 
 @variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
@@ -503,7 +520,7 @@ function makeFocalModelM(Xf, Xl, Yf, Yl, world)
     model = makeFArray(world)
     for q in 1:world[:q]
         for n in 2:world[:n]
-            model[q, n] = world[:basem] * exp(-1 * ((Xl[q,n]*(n-2) + Xf[q,n]))) + world[:multX]*Xf[q,n]^2 + world[:multY]*Yf[q,n]^2
+            model[q, n] = world[:basem] * exp(-1 * ((Xl[q,n]*(n-2) + Xf[q,n]))) + world[:multX]*Xf[q,n]^world[:shape_X_cost] + world[:multY]*Yf[q,n]^world[:shape_Y_cost]
         end
     end
     return model
@@ -513,7 +530,7 @@ function makeLocalModelM(Xf, Xl, Yf, Yl, world)
     model = makeFArray(world)
     for q in 1:world[:q]
         for n in 2:world[:n]
-            model[q, n] = world[:basem] * exp(-1 * ((Xl[q,n]*(n-2) + Xf[q,n]))) + world[:multX]*Xl[q,n]^2 + world[:multY]*Yl[q,n]^2
+            model[q, n] = world[:basem] * exp(-1 * ((Xl[q,n]*(n-2) + Xf[q,n]))) + world[:multX]*Xl[q,n]^world[:shape_X_cost] + world[:multY]*Yl[q,n]^world[:shape_Y_cost]
         end
     end
     return model
@@ -1066,12 +1083,12 @@ function runSim(world)
 
     for i in 1:world[:nGens]
         world[:itr] = i
-        (world, error) = step(world, callFun, callFunW, callFunR,
+        (world, e_flag) = step(world, callFun, callFunW, callFunR,
             grads,
             modelM, modelP, modelC, modelMl, modelPl, modelCl
             )
-        if error == true 
-            println(savename(world), " \nSTEP HAD A FATAL ERROR")
+        if e_flag == true 
+            println(savename(world), " \nSTEP HAD A FATAL ERROR");
             break
         end
 
@@ -1090,7 +1107,7 @@ function runSim(world)
         #     save(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), world)
         # end
     end
-    return world, error
+    return world
 end
 
 function testRatios!(resWorld)
@@ -1154,31 +1171,21 @@ end
 
 function produceOnceSim(world, save=false)
 
-    key_list = [
-    :b,
-    :k,
-    :d,
-    :q,
-    :n,
-    :decay, 
-    :epsilon, 
-    :learning_rate, 
-    :ratio, 
-    :stab,]
-    name = savename(world, "bson", accesses=key_list)
+    name = savename(world, "bson", accesses=world[:saveKeys])
     if name in readdir(joinpath("..", "data"))
         println("skipping ", name)
         return world
     end
-    (result, elapsed_time) = runSim(world) 
-    (res, error) = result
+    (res, elapsed_time) = @timed runSim(world) 
+    # (res, error_flag) = result
+    println(string("Time: ", elapsed_time))
     res[:timing] = elapsed_time
     if save == true 
-        # if world[:verbose]
+        if world[:verbose]
             println(string("Saving sim ", name))
             println(res[:itr], " --- ", res[:err])
-        # end
-        safesave(joinpath("..", "data", name), res)
+        end
+        safesave(joinpath("..", "data", name), res);
     end
     
     return res
