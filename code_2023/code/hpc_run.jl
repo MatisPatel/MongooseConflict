@@ -52,44 +52,45 @@ world = Dict{Symbol, Any}(
 )
 
 worldSet = dict_list(world);
-for cosm in worldSet
-    cosm[:gain] = cosm[:ratio]/cosm[:stab]
-    cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
-    cosm[:fix] = string(cosm[:fixed][1], cosm[:fixed][2])
-    world[:q] = world[:worldSize][1][1] 
-    world[:n] = world[:worldSize][1][2] 
-    world[:size] = world[:n]*world[:q] 
-    world[:gradX] = zeros(world[:n], world[:q])
-    world[:gradY] = zeros(world[:n], world[:q])
-    world[:err] = 5
-    world[:err_list] = [zeros(world[:nGens])]
-end
+
+cosm = worldSet[job_id];
+# for cosm in worldSet
+cosm[:gain] = cosm[:ratio]/cosm[:stab]
+cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
+cosm[:fix] = string(cosm[:fixed][1], cosm[:fixed][2])
+cosm[:q] = cosm[:worldSize][1]
+cosm[:n] = cosm[:worldSize][2] 
+cosm[:size] = cosm[:n]*cosm[:q] 
+cosm[:gradX] = zeros(cosm[:n], cosm[:q])
+cosm[:gradY] = zeros(cosm[:n], cosm[:q])
+cosm[:err] = 5
+cosm[:err_list] = [zeros(world[:nGens])]
+# end
 
 @variables begin 
-    F[1:world[:q], 1:world[:n]];
-    W[1:world[:q], 1:world[:n]];
-    R[1:world[:q], 1:world[:n]];
-    M[1:world[:q], 1:world[:n]];
-    Mf[1:world[:q], 1:world[:n]];
-    Ml[1:world[:q], 1:world[:n]];
-    P[1:world[:q], 1:world[:n]];
-    Pf[1:world[:q], 1:world[:n]];
-    Pl[1:world[:q], 1:world[:n]];
-    C[1:world[:q], 1:world[:n]];
-    Cf[1:world[:q], 1:world[:n]];
-    Cl[1:world[:q], 1:world[:n]];
-    Tr[1:world[:q], 1:world[:q]];
-    X[1:world[:q], 1:world[:n]];
-    Y[1:world[:q], 1:world[:n]];
-    Xf[1:world[:q], 1:world[:n]];
-    Yf[1:world[:q], 1:world[:n]];
-    Xl[1:world[:q], 1:world[:n]];
-    Yl[1:world[:q], 1:world[:n]];
+    F[1:cosm[:q], 1:cosm[:n]];
+    W[1:cosm[:q], 1:cosm[:n]];
+    R[1:cosm[:q], 1:cosm[:n]];
+    M[1:cosm[:q], 1:cosm[:n]];
+    Mf[1:cosm[:q], 1:cosm[:n]];
+    Ml[1:cosm[:q], 1:cosm[:n]];
+    P[1:cosm[:q], 1:cosm[:n]];
+    Pf[1:cosm[:q], 1:cosm[:n]];
+    Pl[1:cosm[:q], 1:cosm[:n]];
+    C[1:cosm[:q], 1:cosm[:n]];
+    Cf[1:cosm[:q], 1:cosm[:n]];
+    Cl[1:cosm[:q], 1:cosm[:n]];
+    Tr[1:cosm[:q], 1:cosm[:q]];
+    X[1:cosm[:q], 1:cosm[:n]];
+    Y[1:cosm[:q], 1:cosm[:n]];
+    Xf[1:cosm[:q], 1:cosm[:n]];
+    Yf[1:cosm[:q], 1:cosm[:n]];
+    Xl[1:cosm[:q], 1:cosm[:n]];
+    Yl[1:cosm[:q], 1:cosm[:n]];
 end
 
 println(string("Number of cosmologies: ", length(worldSet)))
 
-cosm = worldSet[job_id];
 println(cosm[:ratio], " --- ", cosm[:stab], " --- ", cosm[:epsilon])
 out = copy(cosm);
 out = produceOnceSim(out, true);
