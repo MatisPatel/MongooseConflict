@@ -2,24 +2,29 @@ include("./simulation_updated_2023.jl")
 using Distributed 
 using BenchmarkTools
 world = Dict{Symbol, Any}(
-    :nGens => 100,
-    :worldSize => [[3, 3]],
-    :ratio => collect(0.1:0.1:0.9)),
-    :stab => [4, 8],
+    :nGens => 150,
+    :worldSize => [[5, 5]],
+    :ratio => collect(0.1:0.1:0.9),
+    # :ratio => 0.5,
+    :stab => 2,
     :fixed => [[1,2]],
     :gain => 0.1,
     :loss => 0.1,
     :basem => 0.1,
-    :k => 0.1,
-    :b => 0.3,
-    :d => 0.1,
-    :epsilon => [1, 2],
+    :k => [0.25],
+    :b => [0.5],
+    :d => [0.1],
+    :epsilon => 2,
     :multX => 0.1,
     :multY => 0.1,
     :grad_rate => 0.1,
     :learning_rate => 0.01,
     :decay => 0.995,
-    :verbose => true,
+    :verbose => false,
+    :randStart => false,
+    :SolFFails => 0,
+    :SolWFails => 0,
+    :SolRFails => 0,
 )
 world[:q] = world[:worldSize][1][1] 
 world[:n] = world[:worldSize][1][2] 
@@ -62,11 +67,30 @@ for cosm in worldSet
     cosm[:fix] = string(cosm[:fixed][1], cosm[:fixed][2])
 end
 
-@time begin
-    Threads.@threads for cosm in worldSet
-        out = produceSim(cosm, true)
-    end
+println(string("Number of cosmologies: ", length(worldSet)))
+
+Threads.@threads for cosm in worldSet
+    println(cosm[:ratio], " --- ", cosm[:stab], " --- ", cosm[:epsilon])
+    out = copy(cosm)
+    out = produceOnceSim(out, true)
+    println(out[:err])
 end
+
+# @time begin
+# Threads.@threads for cosm in worldSet
+#     println(Threads.threadid(), " --- ", cosm[:ratio], " --- ", cosm[:stab], " --- ", cosm[:epsilon])
+#     out = copy(cosm)
+#     for attempt in 1:5
+#         out[:learning_rate] = cosm[:learning_rate]/(attempt)
+#         println(out[:learning_rate])
+#         out = produceSim(out, true)
+#         println(out[:err])
+#         if out[:err] < 1E-6
+#             break
+#         end
+#     end
+# end
+# end
 
 # decay_list = [0.995]
 # lr_list = [0.01, 0.05, 0.005, 0.001]

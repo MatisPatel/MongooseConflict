@@ -18,15 +18,18 @@ world = Dict{Symbol, Any}(
     :gain => 0.1,
     :loss => 0.1,
     :basem => 0.1,
-    :k => 0.1,
-    :b => 0.3,
-    :d => 0.1,
+    :k => 0.5,
+    :b => 1.0,
+    :d => 0.5,
     :epsilon => 5,
     :multX => 0.1,
     :multY => 0.1,
     :grad_rate => 0.1,
     :learning_rate => 0.01,
     :decay => 0.9,
+    :SolFFails => 0,
+    :SolWFails => 0,
+    :SolRFails => 0,
 )
 
 @variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
@@ -61,6 +64,20 @@ world[:err_list] = zeros(world[:nGens])
     Yf[1:world[:q], 1:world[:n]]
     Xl[1:world[:q], 1:world[:n]]
     Yl[1:world[:q], 1:world[:n]]
+end
+
+function try_function(fun)
+    attempts = 0
+    while attempts < 10
+        attempts += 1
+        try
+            result = fun()
+            return result
+        catch
+            println("Attempt $attempts failed.")
+        end
+    end
+    println(string("Function ", fun, " failed after 10 attempts."))
 end
 
 function makeFArray(world)
@@ -414,6 +431,57 @@ function addFightsR(Rp, R, F, C, epsilon, world)
     end                                    
     return Rp
 end
+# function addFightsR(Rp, R, F, C, epsilon, world)
+#     for q in 1:world[:q]
+#         for n in 1:world[:n]
+#             for qOpp in 1:world[:q]
+#                 for nOpp in 1:world[:n]
+#                     # println("fight", F[q,n], " -> ", F[qOpp, nOpp])
+#                     # halved to not double count x->y and y->x
+#                     pEncounter  =  F[q, n] * F[qOpp, nOpp] * epsilon
+#                     pVictory    =  victory((n-1) * C[q, n], (nOpp-1) * C[qOpp, nOpp])
+#                     # print(pVictory)
+#                     fWin = pEncounter*pVictory
+#                     fLoss = pEncounter*(1-pVictory)
+#                     # fight logic 
+#                     # what is focal patch is minimal richness? then can only win losses dont change freq
+#                     # or if qOpp is maximum and q is less than it
+#                     if ((q == 1) & (qOpp > 1)) | ((qOpp == world[:q]) & (q < qOpp))
+#                         # println("only win")
+#                         Rp[q,n] -= fWin * R[q, n]
+#                         Rp[q+1,n] += fWin * R[q, n]
+#                     # what if focal patch is non-zero but other patch is 0. Then can only lose
+#                     elseif ((q > 1) & (qOpp == 1)) | ((q == world[:q]) & (qOpp < q))
+#                         # println("only lose")
+#                         Rp[q,n] -= fLoss * R[q,n]
+#                         Rp[q-1,n] += fLoss * R[q,n]
+#                     # if equal richness and neither max not min then they can win or lose 
+#                     elseif (q == qOpp) & (q > 1) & (q < world[:q])
+#                         # println("both win or lose")
+#                         # q wins
+#                         Rp[q,n] -= fWin * R[q,n]
+#                         Rp[q+1,n] += fWin * R[q,n]
+#                         # q loses
+#                         Rp[q,n] -= fLoss * R[q,n]
+#                         Rp[q-1,n] += fLoss * R[q,n]
+#                     # or if diffrent and not min or max
+#                     elseif (q != qOpp) & (q > 1) & (q < world[:q]) & (qOpp > 1) & (qOpp < world[:q])
+#                         # println("both win or lose")
+#                         # q wins
+#                         Rp[q,n] -= fWin * R[q,n]
+#                         Rp[q+1,n] += fWin * R[q,n]
+#                         # q loses
+#                         Rp[q,n] -= fLoss * R[q,n]
+#                         Rp[q-1,n] += fLoss * R[q,n]
+#                     # else
+#                         # println("NO MATCH") 
+#                     end
+#                 end
+#             end
+#         end
+#     end                                    
+#     return Rp
+# end
 
 function makeFsys(F, M, P, C, d, world)
     Fp = makeFArray(world)
@@ -422,7 +490,7 @@ function makeFsys(F, M, P, C, d, world)
     Fp3 = addLocBirth(copy(Fp2), F, P, d, world)
     Fp4 = addImmigration(copy(Fp3), F, P, d, world)
     Fp5 = addFights(copy(Fp4), F, C, epsilon, world)
-    Fp5[1,2] = 1 - sum(F)
+    Fp5[1,1] = 1 - sum(F) + F[1,1]
     return Fp5
 end
 
@@ -501,7 +569,7 @@ function makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
     Wn5, Wd5 = addFights(copy(Wn4), copy(Wd4), W, F, C, Cf, Cl, epsilon, world)
     Wn6, Wd6 = addDistantBirth(copy(Wn5), copy(Wd5), W, F, Pf, world)
     wSys = Symbolics.scalarize(Wn6./Wd6.-W)
-    # wSys[1,2] = 1-W[1,2]
+    wSys[1,2] = 1-W[1,2]
     # for q in 1:world[:q]
     #     wSys[q, 1] = W[q,1]
     # end
@@ -722,20 +790,149 @@ function step(world, callFun, callFunW, callFunR,
         world[:epsilon]
         )
 
+    solF = zeros(world[:q], world[:n])
+    try
+        try 
+            solF = genSolF2(fFun, world)
+        catch
+            solF = genSolF(fFun, world)
+        finally 
+            # println("F sol failed for:\n", 
+            #         savename(world))
+            # display(world[:tF])
+            # display(world[:tW])
+            
+        end
+    catch
+        # println("Defaulting to previous F")
+        # display(world[:tF])
+        solF = world[:tF]
+    end
+    # solF = genSolF(fFun, world)
+    # println(solF.iterations)
+    # display(solF.zero)
+    if hasproperty(solF, :zero)
+        world[:tF] = solF.zero;
+    else 
+        world[:tF] = world[:tF]
+        world[:SolFFails] += 1
+    end
     
-    solF = genSolF(fFun, world)
-    world[:tF] = solF.zero
+    solW = zeros(world[:q], world[:n])
+    try
+        try 
+            solW = genSolW2(wFun, world)
+        catch
+            solW = genSolW(wFun, world)
+        finally 
+            # println("W sol failed for:\n", 
+            #         savename(world))
+            # display(world[:tF])
+            # display(world[:tW])
+            
+        end
+    catch
+        # println("Defaulting to previous W")
+        # display(world[:tW])
+        solW = world[:tW]
+    end
+    # solW = genSolW(wFun, world)
+    # println(solW.iterations)
+    # display(solW.zero)
+    if hasproperty(solW, :zero)
+        world[:tW] = solW.zero;
+    else 
+        world[:tW] = world[:tW]
+        world[:SolWFails] += 1
+    end
 
-    solW = genSolW(wFun, world)
-    world[:tW] = solW.zero
+    solR = zeros(world[:q], world[:n])
+    try
+        try 
+            solR = genSolR2(rFun, world)
+        catch
+            solR = genSolR(rFun, world)
+        finally
+            # println("R sol failed for:\n", savename(world))
+            # display(world[:tF])
+            # display(world[:tW])
+        end
+    catch 
+        # println("Defaulting to previous R")
+        # display(world[:tR])
+        solR = world[:tR]
+    end
+    
+    # solR = genSolR(rFun, world)
+    # println(solR.iterations)
+    # display(solR.zero)
+    if hasproperty(solR, :zero)
+        world[:tR] = solR.zero;
+    else 
+        world[:tR] = world[:tR]
+        world[:SolRFails] += 1
+    end
+
+    # attempt to solve for F 10 times 
+    # attempts = 0 
+    # solF = :missing
+    # while attempts < 10
+    #     try
+    #         solF = genSolF(fFun, world)
+    #         break
+    #     catch
+    #         attempts += 1
+    #     end
+    # end
+    # if solF != :missing
+    #     world[:tF] = solF.zero
+    # else
+    #     return world, false
+    # end
+
+    # attempt to solve for W 10 times 
+    # attempts = 0    
+    # solW = :missing
+    # while attempts < 10
+    #     try
+    #         solW = genSolW(wFun, world)
+    #         break
+    #     catch
+    #         attempts += 1
+    #     end
+    # end
+    # if solW != :missing
+    #     world[:tW] = solW.zero
+    # else
+    #     return world, false
+    # end
+    # solW = genSolW(wFun, world)
+    # world[:tW] = solW.zero
+
+    # attempt to solve for R 10 times
+    # attempts = 0
+    # solR = :missing
+    # while attempts < 10
+    #     try
+    #         solR = genSolR(rFun, world)
+    #         break
+    #     catch
+    #         attempts += 1
+    #     end
+    # end
+    # if solR != :missing
+    #     world[:tR] = clamp.(solR.zero, 0, 1)
+    # else
+    #     return world, false
+    # end 
 
     # solR = zeros(world[:q], world[:n])
     # try 
     #     solR = genSolR2(rFun, world)
     # catch
-        solR = genSolR(rFun, world)
-    # end 
-    world[:tR] = solR.zero
+    # solR = genSolR(rFun, world)
+    # # end 
+    # world[:tR] = clamp.(solR.zero, 0, 1)
 
     gradX = substitute(grads[1], Dict([X =>world[:tX], Y =>world[:tY], F =>world[:tF], W =>world[:tW], R =>world[:tR]]))
 
@@ -759,7 +956,7 @@ function step(world, callFun, callFunW, callFunR,
     # )
 
 
-    if world[:err] >= 1
+    if world[:err] >= 1 && !world[:randStart]
 
     world[:tX] = clamp.(
         world[:tX] .+ world[:grad_rate]*clamp.(world[:gradX], -1, 1),
@@ -784,12 +981,17 @@ function step(world, callFun, callFunW, callFunR,
         world[:tY] = clamp.(world[:tY] .+ world[:update_y], 0, 1)
     end
 
-    return world
+    return world, false
 end
 
 function runSim(world)
     world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
     world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+
+    # if world[:randStart]
+    #     world[:tX] = Symbolics.value.(rand(world[:q], world[:n]))
+    #     world[:tY] = Symbolics.value.(rand(world[:q], world[:n]))
+    # end
     # world[:tX] = Symbolics.value.(rand(world[:q], world[:n])).*0.001
     # world[:tX][:, 1] .= 0.0
     # world[:tY] = Symbolics.value.(rand(world[:q], world[:n])).*0.001
@@ -842,8 +1044,8 @@ function runSim(world)
     wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world);
 
     # wSys[world[:fixed]...] = 1-W[world[:fixed]...]
-    numInds = reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'
-    wSys[world[:fixed][1], world[:fixed][2]] = Symbolics.scalarize(1 - sum((W.*F.*numInds)./sum(F.*numInds)))
+    # numInds = reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'
+    # wSys[world[:fixed][1], world[:fixed][2]] = Symbolics.scalarize(1 - sum((W.*F.*numInds)./sum(F.*numInds)))
 
     for q in 1:world[:q]
         wSys[q, 1] = W[q,1]
@@ -859,10 +1061,15 @@ function runSim(world)
 
     for i in 1:world[:nGens]
         world[:itr] = i
-        world = step(world, callFun, callFunW, callFunR,
+        (world, error) = step(world, callFun, callFunW, callFunR,
             grads,
             modelM, modelP, modelC, modelMl, modelPl, modelCl
             )
+        if error == true 
+            println(savename(world), " \nSTEP HAD A FATAL ERROR")
+            break
+        end
+
         err = sum(corrErr(world[:gradX], world[:tX]) +
         corrErr(world[:gradY], world[:tY]))
         if world[:verbose]
@@ -878,7 +1085,7 @@ function runSim(world)
         #     save(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), world)
         # end
     end
-    return world
+    return world, error
 end
 
 function testRatios!(resWorld)
@@ -929,12 +1136,46 @@ end
 
 function produceSim(world, save=false)
     name = savename(world)
-    println(name)
+    if world[:verbose]
+        println(name)
+    end
     res = runSim(world)
     if save == true
-        safesave(joinpath("..", "data", savename(world, "bson")), res)
+        wsave(joinpath("..", "data", savename(world, "bson")), res)
     end
     println(res[:err], " --- ", name)
+    return res
+end
+
+function produceOnceSim(world, save=false)
+
+    key_list = [
+    :b,
+    :k,
+    :d,
+    :q,
+    :n,
+    :decay, 
+    :epsilon, 
+    :learning_rate, 
+    :ratio, 
+    :stab,]
+    name = savename(world, "bson", accesses=key_list)
+    if name in readdir(joinpath("..", "data"))
+        println("skipping ", name)
+        return world
+    end
+    (result, elapsed_time) = runSim(world) 
+    (res, error) = result
+    res[:timing] = elapsed_time
+    if save == true 
+        # if world[:verbose]
+            println(string("Saving sim ", name))
+            println(res[:itr], " --- ", res[:err])
+        # end
+        safesave(joinpath("..", "data", name), res)
+    end
+    
     return res
 end
 
@@ -982,7 +1223,159 @@ function RMSprop_update(learning_rate, cache, grad, decay)
 end
 
 function RMSprop_update(learning_rate, cache1, cache2, grad, decay)
-    cache1 = decay .* cache1 .+ (1 - decay) .* grad.^2
+    cache1 = decay .* cache1 .+ (1 - decay) .* clamp.(grad, -1, 1).^2
     return grad .* (learning_rate ./ ((sqrt.(0.5.*(cache1 .+ mean(cache2)))) .+ 1E-8)), cache1
 end
 
+function squash(x)
+    "squash a value between 0 and 1"
+    return (1/(1+exp(-x)))
+end
+
+
+
+# # debugging R 
+
+world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+# world[:tX] = Symbolics.value.(rand(world[:q], world[:n])).*0.001
+# world[:tX][:, 1] .= 0.0
+# world[:tY] = Symbolics.value.(rand(world[:q], world[:n])).*0.001
+# world[:tY][:, 1] .= 0.0
+
+world[:update_x] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+world[:update_y] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+world[:cache_x] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+world[:cache_y] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+
+u = ones(world[:q], world[:n])
+u[:, 1] .= 0.0
+world[:tW] = u
+world[:tF] = reshape(
+    repeat([1/world[:size]], world[:size]), (world[:q], world[:n])
+)
+world[:tR] = reshape(
+    repeat(
+        hcat([0 0], [1/p for p in 2:(world[:n]-1)]'), 
+        world[:q]
+    ), 
+    (world[:q], world[:n])
+)
+
+modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, modelM, modelP, modelC = makeModelExpr(world)
+
+world = updateMPC(world, modelM, modelP, modelC, modelMl, modelPl, modelCl)
+
+# create F system
+fSys = makeFsys(F, M, P, C, d, world)
+funF = build_function(
+    fSys, F, M, P, C, d, epsilon;
+    expression=Val{false}
+    );
+callFun = eval(funF[2]);
+
+rSys = Symbolics.scalarize(makeRsys(R, M, P, C, d, world));
+# R2 = collect(Symbolics.value.(R));
+# [R2[p, 1] = 0.0 for p in 1:world[:q]];
+# [R2[p, 2] = 0.0 for p in 1:world[:q]];
+rSys = substitute(rSys, Dict(vcat([R[p, 1]=> 0 for p in 1:world[:q]], [R[p, 2]=> 0 for p in 1:world[:q]])))
+
+funR = build_function(
+    rSys, R, F, M, P, C, d, epsilon;
+    expression=Val{false}
+    );
+callFunR = eval(funR[2]);
+
+# create W system 
+wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world);
+
+# wSys[world[:fixed]...] = 1-W[world[:fixed]...]
+# numInds = reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'
+# wSys[world[:fixed][1], world[:fixed][2]] = Symbolics.scalarize(1 - sum((W.*F.*numInds)./sum(F.*numInds)))
+
+for q in 1:world[:q]
+    wSys[q, 1] = W[q,1]
+end
+wSysSelec = Symbolics.scalarize(Wn./Wd);
+funW = build_function(
+    wSys, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
+    expression=Val{false}
+    );
+callFunW = eval(funW[2]);
+
+grads, directSel, indirectSel = makeSelGrads(wSysSelec, modelM, modelP, modelC, modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, world);
+
+
+
+err = sum(corrErr(world[:gradX], world[:tX]) +
+corrErr(world[:gradY], world[:tY]))
+
+fFun(Fx, x) = callFun(
+    reshape(Fx, (world[:q], world[:n])), 
+    reshape(x, (world[:q], world[:n])),  
+    world[:M], 
+    world[:P], 
+    world[:C], 
+    world[:d], 
+    world[:epsilon]
+    )
+
+rFun(Fx, x) = callFunR(
+    reshape(Fx, (world[:q], world[:n])), 
+    reshape(x, (world[:q], world[:n])), 
+    solF.zero, 
+    world[:M], 
+    world[:P], 
+    world[:C], 
+    world[:d], 
+    world[:epsilon]
+    )
+
+wFun(Fx, x) = callFunW(
+    reshape(Fx, (world[:q], world[:n])), 
+    reshape(x, (world[:q], world[:n])), 
+    solF.zero, 
+    world[:Mf], 
+    world[:Ml], 
+    world[:Pf], 
+    world[:Pl],
+    world[:P],
+    world[:C],
+    world[:Cl],
+    world[:Cf],
+    world[:d], 
+    world[:epsilon]
+    )
+
+
+solF = genSolF(fFun, world)
+display(solF.zero)
+world[:tF] = solF.zero;
+
+solW = genSolW(wFun, world)
+display(solW.zero)
+world[:tW] = solW.zero;
+
+solR = genSolR(rFun, world)
+display(solR.zero)
+world[:tR] = solR.zero;
+
+println()
+sol = nlsolve(
+        rFun,
+        transpose(
+            reshape(
+                repeat(
+                    vcat([0, 0], [1/p for p in 2:(world[:n]-1)]), 
+                    world[:q]
+                ), 
+                (world[:q], world[:n])
+            )
+        )
+    )
+
+# unsquash sol.zero 
+println(sol.zero)
+
+
+subSys = substitute(Symbolics.scalarize(fSys), Dict([M => world[:M], P => world[:P], C => world[:C]]))
