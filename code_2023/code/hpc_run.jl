@@ -9,7 +9,7 @@ using StatsBase
 job_id = parse(Int, ARGS[1])
 
 world = Dict{Symbol, Any}(
-    :nGens => 1,
+    :nGens => 250,
     :worldSize => [[3, 3]],
     :ratio => collect(0.05:0.05:0.95),
     # :ratio => 0.5,
@@ -24,8 +24,8 @@ world = Dict{Symbol, Any}(
     :epsilon => [2],
     :multX => [0.11],
     :multY => [0.11],
-    :shape_X_cost => [0.5], 
-    :shape_Y_cost => [0.5],
+    :shape_X_cost => [1, 2,0.5], 
+    :shape_Y_cost => [1, 2,0.5],
     :grad_rate => 0.1,
     :learning_rate => 0.01,
     :decay => 0.995,
