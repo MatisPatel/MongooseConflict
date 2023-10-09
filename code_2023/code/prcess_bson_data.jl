@@ -1,8 +1,9 @@
 using BSON
 using DrWatson 
 using DataFrames
-using PlotlyJS
-using Tidier
+using StatsBase
+# using PlotlyJS
+# using Tidier
 
 datdir = joinpath("..", "data")
 
@@ -65,23 +66,23 @@ sort!(dfplot, [:ratio, :b, :k, :d])
 #     size = (1080, 1900))
 # savefig("../results/meanExprY.png")
 
-plt = PlotlyJS.plot(
-    dfplot,
-    x = :ratio, 
-    y = :meanExprY,
-    color = :k,
-    facet_row = :d,
-    facet_col = :b,
-); 
+# plt = PlotlyJS.plot(
+#     dfplot,
+#     x = :ratio, 
+#     y = :meanExprY,
+#     color = :k,
+#     facet_row = :d,
+#     facet_col = :b,
+# ); 
 
-plt = PlotlyJS.plot(
-    dfplot,
-    x = :ratio, 
-    y = :meanExprX,
-    color = :k,
-    facet_row = :d,
-    facet_col = :b,
-);
+# plt = PlotlyJS.plot(
+#     dfplot,
+#     x = :ratio, 
+#     y = :meanExprX,
+#     color = :k,
+#     facet_row = :d,
+#     facet_col = :b,
+# );
 
 
 
@@ -102,4 +103,4 @@ plt = PlotlyJS.plot(
 #     wsave(joinpath(datdir, shortName), data)
 # end
 
-plot(dfplot, x=:ratio, y=:meanExprY, color=:d)
+# plot(dfplot, x=:ratio, y=:meanExprY, color=:d)
