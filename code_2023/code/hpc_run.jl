@@ -50,17 +50,20 @@ world = Dict{Symbol, Any}(
         :ratio, 
         :stab,]]
 )
-world[:q] = world[:worldSize][1][1] 
-world[:n] = world[:worldSize][1][2] 
-world[:size] = world[:n]*world[:q] 
-world[:gradX] = zeros(world[:n], world[:q])
-world[:gradY] = zeros(world[:n], world[:q])
-# world[:step_size_x] = zeros(world[:n], world[:q])
-# world[:step_size_y] = zeros(world[:n], world[:q])
-world[:err] = 5
-world[:err_list] = [zeros(world[:nGens])]
-# world[:step_size_x][:,2:end] .= world[:step_size_min]
-# world[:step_size_y][:,2:end] .= world[:step_size_min]
+
+worldSet = dict_list(world);
+for cosm in worldSet
+    cosm[:gain] = cosm[:ratio]/cosm[:stab]
+    cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
+    cosm[:fix] = string(cosm[:fixed][1], cosm[:fixed][2])
+    world[:q] = world[:worldSize][1][1] 
+    world[:n] = world[:worldSize][1][2] 
+    world[:size] = world[:n]*world[:q] 
+    world[:gradX] = zeros(world[:n], world[:q])
+    world[:gradY] = zeros(world[:n], world[:q])
+    world[:err] = 5
+    world[:err_list] = [zeros(world[:nGens])]
+end
 
 @variables begin 
     F[1:world[:q], 1:world[:n]];
@@ -82,13 +85,6 @@ world[:err_list] = [zeros(world[:nGens])]
     Yf[1:world[:q], 1:world[:n]];
     Xl[1:world[:q], 1:world[:n]];
     Yl[1:world[:q], 1:world[:n]];
-end
-
-worldSet = dict_list(world);
-for cosm in worldSet
-    cosm[:gain] = cosm[:ratio]/cosm[:stab]
-    cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
-    cosm[:fix] = string(cosm[:fixed][1], cosm[:fixed][2])
 end
 
 println(string("Number of cosmologies: ", length(worldSet)))
