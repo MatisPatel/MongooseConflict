@@ -1,6 +1,6 @@
-module MongooseSimulation
+# module MongooseSimulation
 
-export runSim, produceSim, produceOnceSim
+# export runSim, produceSim, produceOnceSim
 
 # using ModelingToolkit 
 using NLsolve
@@ -29,8 +29,8 @@ world = Dict{Symbol, Any}(
     :epsilon => 5,
     :multX => 0.1,
     :multY => 0.1,
-    :shape_X_cost => 1, 
-    :shape_Y_cost => 1,
+    :shape_X_cost => 0.5, 
+    :shape_Y_cost => 0.5,
     :grad_rate => 0.1,
     :learning_rate => 0.01,
     :decay => 0.9,
@@ -962,8 +962,8 @@ function step(world, callFun, callFunW, callFunR,
 
     # world[:tgradX] = world[:gradX]
     # world[:tgradY] = world[:gradY]
-    world[:gradX] = Symbolics.value.(gradX)
-    world[:gradY] = Symbolics.value.(gradY)
+    world[:gradX] = clamp.(Symbolics.value.(gradX), -1, 1)
+    world[:gradY] = clamp.(Symbolics.value.(gradY), -1, 1)
 
     # (world[:step_size_x], world[:signs_x]) = update_step_size(world[:tgradX], world[:gradX], world[:step_size_x], world)
     # (world[:step_size_y], world[:signs_y]) = update_step_size(world[:tgradY], world[:gradY], world[:step_size_y], world)
@@ -983,14 +983,14 @@ function step(world, callFun, callFunW, callFunR,
     world[:tX] = clamp.(
         world[:tX] .+ world[:grad_rate]*clamp.(world[:gradX], -1, 1),
         # clamp.(world[:force]*world[:gradY], -world[:force], world[:force]), 
-        0,
+        1E-8,
         1
     )
 
     world[:tY] = clamp.(
         world[:tY] .+ world[:grad_rate]*clamp.(world[:gradY], -1, 1),
         # clamp.(world[:force]*world[:gradY], -world[:force], world[:force]), 
-        0,
+        1E-8,
         1
     )
 
@@ -999,8 +999,8 @@ function step(world, callFun, callFunW, callFunR,
 
         (world[:update_y], world[:cache_y]) = RMSprop_update(world[:learning_rate], world[:cache_y], world[:cache_x], world[:gradY], world[:decay])
 
-        world[:tX] = clamp.(world[:tX] .+ world[:update_x], 0, 1)
-        world[:tY] = clamp.(world[:tY] .+ world[:update_y], 0, 1)
+        world[:tX] = clamp.(world[:tX] .+ world[:update_x], 1E-8, 1)
+        world[:tY] = clamp.(world[:tY] .+ world[:update_y], 1E-8, 1)
     end
 
     return world, false
@@ -1244,152 +1244,193 @@ function squash(x)
     return (1/(1+exp(-x)))
 end
 
-# end for module
+
+# # debugging R 
+
+world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+# world[:tX] = Symbolics.value.(rand(world[:q], world[:n])).*0.001
+# world[:tX][:, 1] .= 0.0
+# world[:tY] = Symbolics.value.(rand(world[:q], world[:n])).*0.001
+# world[:tY][:, 1] .= 0.0
+
+world[:update_x] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+world[:update_y] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+world[:cache_x] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+world[:cache_y] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
+
+u = ones(world[:q], world[:n])
+u[:, 1] .= 0.0
+world[:tW] = u
+world[:tF] = reshape(
+    repeat([1/world[:size]], world[:size]), (world[:q], world[:n])
+)
+world[:tR] = reshape(
+    repeat(
+        hcat([0 0], [1/p for p in 2:(world[:n]-1)]'), 
+        world[:q]
+    ), 
+    (world[:q], world[:n])
+)
+
+modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, modelM, modelP, modelC = makeModelExpr(world)
+
+world = updateMPC(world, modelM, modelP, modelC, modelMl, modelPl, modelCl)
+
+# create F system
+fSys = makeFsys(F, M, P, C, d, world)
+funF = build_function(
+    fSys, F, M, P, C, d, epsilon;
+    expression=Val{false}
+    );
+callFun = eval(funF[2]);
+
+rSys = Symbolics.scalarize(makeRsys(R, M, P, C, d, world));
+# R2 = collect(Symbolics.value.(R));
+# [R2[p, 1] = 0.0 for p in 1:world[:q]];
+# [R2[p, 2] = 0.0 for p in 1:world[:q]];
+rSys = substitute(rSys, Dict(vcat([R[p, 1]=> 0 for p in 1:world[:q]], [R[p, 2]=> 0 for p in 1:world[:q]])))
+
+funR = build_function(
+    rSys, R, F, M, P, C, d, epsilon;
+    expression=Val{false}
+    );
+callFunR = eval(funR[2]);
+
+# create W system 
+wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world);
+
+# wSys[world[:fixed]...] = 1-W[world[:fixed]...]
+# numInds = reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'
+# wSys[world[:fixed][1], world[:fixed][2]] = Symbolics.scalarize(1 - sum((W.*F.*numInds)./sum(F.*numInds)))
+
+for q in 1:world[:q]
+    wSys[q, 1] = W[q,1]
 end
+wSysSelec = Symbolics.scalarize(Wn./Wd);
+funW = build_function(
+    wSys, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
+    expression=Val{false}
+    );
+callFunW = eval(funW[2]);
 
-
-# # # debugging R 
-
-# world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-# world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-# # world[:tX] = Symbolics.value.(rand(world[:q], world[:n])).*0.001
-# # world[:tX][:, 1] .= 0.0
-# # world[:tY] = Symbolics.value.(rand(world[:q], world[:n])).*0.001
-# # world[:tY][:, 1] .= 0.0
-
-# world[:update_x] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-# world[:update_y] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-# world[:cache_x] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-# world[:cache_y] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-
-# u = ones(world[:q], world[:n])
-# u[:, 1] .= 0.0
-# world[:tW] = u
-# world[:tF] = reshape(
-#     repeat([1/world[:size]], world[:size]), (world[:q], world[:n])
-# )
-# world[:tR] = reshape(
-#     repeat(
-#         hcat([0 0], [1/p for p in 2:(world[:n]-1)]'), 
-#         world[:q]
-#     ), 
-#     (world[:q], world[:n])
-# )
-
-# modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, modelM, modelP, modelC = makeModelExpr(world)
-
-# world = updateMPC(world, modelM, modelP, modelC, modelMl, modelPl, modelCl)
-
-# # create F system
-# fSys = makeFsys(F, M, P, C, d, world)
-# funF = build_function(
-#     fSys, F, M, P, C, d, epsilon;
-#     expression=Val{false}
-#     );
-# callFun = eval(funF[2]);
-
-# rSys = Symbolics.scalarize(makeRsys(R, M, P, C, d, world));
-# # R2 = collect(Symbolics.value.(R));
-# # [R2[p, 1] = 0.0 for p in 1:world[:q]];
-# # [R2[p, 2] = 0.0 for p in 1:world[:q]];
-# rSys = substitute(rSys, Dict(vcat([R[p, 1]=> 0 for p in 1:world[:q]], [R[p, 2]=> 0 for p in 1:world[:q]])))
-
-# funR = build_function(
-#     rSys, R, F, M, P, C, d, epsilon;
-#     expression=Val{false}
-#     );
-# callFunR = eval(funR[2]);
-
-# # create W system 
-# wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world);
-
-# # wSys[world[:fixed]...] = 1-W[world[:fixed]...]
-# # numInds = reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'
-# # wSys[world[:fixed][1], world[:fixed][2]] = Symbolics.scalarize(1 - sum((W.*F.*numInds)./sum(F.*numInds)))
-
-# for q in 1:world[:q]
-#     wSys[q, 1] = W[q,1]
-# end
-# wSysSelec = Symbolics.scalarize(Wn./Wd);
-# funW = build_function(
-#     wSys, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
-#     expression=Val{false}
-#     );
-# callFunW = eval(funW[2]);
-
-# grads, directSel, indirectSel = makeSelGrads(wSysSelec, modelM, modelP, modelC, modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, world);
+grads, directSel, indirectSel = makeSelGrads(wSysSelec, modelM, modelP, modelC, modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, world);
 
 
 
-# err = sum(corrErr(world[:gradX], world[:tX]) +
-# corrErr(world[:gradY], world[:tY]))
+err = sum(corrErr(world[:gradX], world[:tX]) +
+corrErr(world[:gradY], world[:tY]))
+display(world[:tX])
+display(world[:gradX])
+display(world[:tY])
+display(world[:gradY])
 
-# fFun(Fx, x) = callFun(
-#     reshape(Fx, (world[:q], world[:n])), 
-#     reshape(x, (world[:q], world[:n])),  
-#     world[:M], 
-#     world[:P], 
-#     world[:C], 
-#     world[:d], 
-#     world[:epsilon]
-#     )
+fFun(Fx, x) = callFun(
+    reshape(Fx, (world[:q], world[:n])), 
+    reshape(x, (world[:q], world[:n])),  
+    world[:M], 
+    world[:P], 
+    world[:C], 
+    world[:d], 
+    world[:epsilon]
+    )
 
-# rFun(Fx, x) = callFunR(
-#     reshape(Fx, (world[:q], world[:n])), 
-#     reshape(x, (world[:q], world[:n])), 
-#     solF.zero, 
-#     world[:M], 
-#     world[:P], 
-#     world[:C], 
-#     world[:d], 
-#     world[:epsilon]
-#     )
+rFun(Fx, x) = callFunR(
+    reshape(Fx, (world[:q], world[:n])), 
+    reshape(x, (world[:q], world[:n])), 
+    solF.zero, 
+    world[:M], 
+    world[:P], 
+    world[:C], 
+    world[:d], 
+    world[:epsilon]
+    )
 
-# wFun(Fx, x) = callFunW(
-#     reshape(Fx, (world[:q], world[:n])), 
-#     reshape(x, (world[:q], world[:n])), 
-#     solF.zero, 
-#     world[:Mf], 
-#     world[:Ml], 
-#     world[:Pf], 
-#     world[:Pl],
-#     world[:P],
-#     world[:C],
-#     world[:Cl],
-#     world[:Cf],
-#     world[:d], 
-#     world[:epsilon]
-#     )
-
-
-# solF = genSolF(fFun, world)
-# display(solF.zero)
-# world[:tF] = solF.zero;
-
-# solW = genSolW(wFun, world)
-# display(solW.zero)
-# world[:tW] = solW.zero;
-
-# solR = genSolR(rFun, world)
-# display(solR.zero)
-# world[:tR] = solR.zero;
-
-# println()
-# sol = nlsolve(
-#         rFun,
-#         transpose(
-#             reshape(
-#                 repeat(
-#                     vcat([0, 0], [1/p for p in 2:(world[:n]-1)]), 
-#                     world[:q]
-#                 ), 
-#                 (world[:q], world[:n])
-#             )
-#         )
-#     )
-
-# # unsquash sol.zero 
-# println(sol.zero)
+wFun(Fx, x) = callFunW(
+    reshape(Fx, (world[:q], world[:n])), 
+    reshape(x, (world[:q], world[:n])), 
+    solF.zero, 
+    world[:Mf], 
+    world[:Ml], 
+    world[:Pf], 
+    world[:Pl],
+    world[:P],
+    world[:C],
+    world[:Cl],
+    world[:Cf],
+    world[:d], 
+    world[:epsilon]
+    )
 
 
+solF = genSolF(fFun, world)
+display(solF.zero)
+world[:tF] = solF.zero;
+
+solW = genSolW(wFun, world)
+display(solW.zero)
+world[:tW] = solW.zero;
+
+solR = genSolR(rFun, world)
+display(solR.zero)
+world[:tR] = solR.zero;
+
+println()
+sol = nlsolve(
+        rFun,
+        transpose(
+            reshape(
+                repeat(
+                    vcat([0, 0], [1/p for p in 2:(world[:n]-1)]), 
+                    world[:q]
+                ), 
+                (world[:q], world[:n])
+            )
+        )
+    )
+
+# unsquash sol.zero 
+println(sol.zero)
+world[:err] = 5
+world[:randStart] = false
+for i in 1:2
+    global world
+    world[:itr] = i
+    (world, e_flag) = step(world, callFun, callFunW, callFunR,
+        grads,
+        modelM, modelP, modelC, modelMl, modelPl, modelCl
+        )
+        println("X")
+        display(world[:tX])
+        println("grad X")
+        display(world[:gradX])
+        println("Y")
+        display(world[:tY])
+        println("grad Y")
+        display(world[:gradY])
+    # if e_flag == true 
+    #     println(savename(world), " \nSTEP HAD A FATAL ERROR");
+    #     break
+    # end
+
+    # err = sum(corrErr(world[:gradX], world[:tX]) +
+    # corrErr(world[:gradY], world[:tY]))
+    # if world[:verbose]
+    #     println(i, " --- ",  err)
+    # end
+    println("M")
+    display(world[:M])
+    # world[:err] = err
+    # world[:err_list][i] = err
+    # if err < 1E-6
+    #     world[:itr] = i
+    #     break
+    # end
+    # if i%1000 == 0
+    #     save(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), world)
+    # end
+end
 # subSys = substitute(Symbolics.scalarize(fSys), Dict([M => world[:M], P => world[:P], C => world[:C]]))
+
+# end for module
+# end

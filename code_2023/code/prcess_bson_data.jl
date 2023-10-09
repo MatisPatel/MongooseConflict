@@ -107,15 +107,18 @@ plot(dfplot, x=:ratio, y=:meanExprY, color=:d)
 
 dfplot = filter(df -> 
     df[:epsilon] == 2 && 
-    df[:q]==3 && 
+    df[:q]==4 && 
     all(df[:tR].>-0.01) && 
-    all(df[:tR].<=1) && 
+    all(df[:tR].<=1) #&& 
     # df[:b] == 0.5 &&
     # df[:k] == 0.2 &&
-    df[:d] == 0.25
+    # df[:d] == 0.25 &&
+    # !(ismissing(df[:shape_X_cost])) &&
+    # df[:shape_X_cost] == 0.5
 , df)
 sort!(dfplot, [:ratio, :b, :k, :d, :multX, :multY])
 dfplot[!, :costs] = string.(dfplot[!, :multX], ":", dfplot[!, :multY])
 dfplot[!, :vitals] = string.(dfplot[!, :b], ":", dfplot[!, :k])
+dfplot[!, :scaling] = string.(dfplot[!, :shape_X_cost], ":", dfplot[!, :shape_Y_cost])
 
-plot(dfplot, x=:ratio, y=:meanExprY, color=:vitals, facet_row=:costs, size=(400, 3600))
+plot(dfplot, x=:ratio, y=:meanExprY, color=:scaling)
