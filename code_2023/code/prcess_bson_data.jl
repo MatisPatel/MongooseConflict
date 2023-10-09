@@ -37,7 +37,7 @@ df[!, :varExprY] = [var(x) for x in expressedY]
 df[!, :factor] = [string(x, ":", y, ":", z) for (x, y, z) in zip(df[!, :k], df[!, :b], df[!, :d])]
 
 dfplot = filter(df -> 
-df[:epsilon] == 2 && df[:q]==5 && all(df[:tR].>-0.01) && all(df[:tR].<=1), df)
+df[:epsilon] == 2 && df[:q]==3 && all(df[:tR].>-0.01) && all(df[:tR].<=1), df)
 sort!(dfplot, [:ratio, :b, :k, :d])
 # plot mean expressed X and Y against ratio
 # Plots.plot(
@@ -66,23 +66,23 @@ sort!(dfplot, [:ratio, :b, :k, :d])
 #     size = (1080, 1900))
 # savefig("../results/meanExprY.png")
 
-# plt = PlotlyJS.plot(
-#     dfplot,
-#     x = :ratio, 
-#     y = :meanExprY,
-#     color = :k,
-#     facet_row = :d,
-#     facet_col = :b,
-# ); 
+plt = PlotlyJS.plot(
+    dfplot,
+    x = :ratio, 
+    y = :meanExprY,
+    color = :k,
+    facet_row = :d,
+    facet_col = :b,
+); 
 
-# plt = PlotlyJS.plot(
-#     dfplot,
-#     x = :ratio, 
-#     y = :meanExprX,
-#     color = :k,
-#     facet_row = :d,
-#     facet_col = :b,
-# );
+plt = PlotlyJS.plot(
+    dfplot,
+    x = :ratio, 
+    y = :meanExprX,
+    color = :k,
+    facet_row = :d,
+    facet_col = :b,
+);
 
 
 
@@ -103,4 +103,19 @@ sort!(dfplot, [:ratio, :b, :k, :d])
 #     wsave(joinpath(datdir, shortName), data)
 # end
 
-# plot(dfplot, x=:ratio, y=:meanExprY, color=:d)
+plot(dfplot, x=:ratio, y=:meanExprY, color=:d)
+
+dfplot = filter(df -> 
+    df[:epsilon] == 2 && 
+    df[:q]==3 && 
+    all(df[:tR].>-0.01) && 
+    all(df[:tR].<=1) && 
+    # df[:b] == 0.5 &&
+    # df[:k] == 0.2 &&
+    df[:d] == 0.25
+, df)
+sort!(dfplot, [:ratio, :b, :k, :d, :multX, :multY])
+dfplot[!, :costs] = string.(dfplot[!, :multX], ":", dfplot[!, :multY])
+dfplot[!, :vitals] = string.(dfplot[!, :b], ":", dfplot[!, :k])
+
+plot(dfplot, x=:ratio, y=:meanExprY, color=:vitals, facet_row=:costs, size=(400, 3600))
