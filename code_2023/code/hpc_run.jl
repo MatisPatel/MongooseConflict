@@ -11,27 +11,44 @@ job_id = parse(Int, ARGS[1])
 world = Dict{Symbol, Any}(
     :nGens => 100,
     :worldSize => [[3, 3]],
-    :ratio => collect(0.1:0.1:0.9),
+    :ratio => collect(0.05:0.05:0.95),
     # :ratio => 0.5,
     :stab => [2],
     :fixed => [[1,2]],
     :gain => 0.1,
     :loss => 0.1,
     :basem => 0.1,
-    :k => [0.2, 0.25, 0.3],
-    :b => 0.5,
-    :d => [0.1, 0.25, 0.5],
+    :k => [0.25],
+    :b => [0.5],
+    :d => [0.25],
     :epsilon => [2],
-    :multX => [0, 0.1, 0.2],
-    :multY => [0, 0.1, 0.2],
+    :multX => [0.1],
+    :multY => [0.1],
+    :shape_X_cost => [0.5, 1, 2], 
+    :shape_Y_cost => [0.5, 1, 2],
     :grad_rate => 0.1,
     :learning_rate => 0.01,
     :decay => 0.995,
-    :verbose => false,
+    :verbose => true,
     :randStart => false,
     :SolFFails => 0,
     :SolWFails => 0,
     :SolRFails => 0,
+    :saveKeys => [[
+        :multX,
+        :multY,
+        :shape_X_cost,
+        :shape_Y_cost,
+        :b,
+        :k,
+        :d,
+        :q,
+        :n,
+        :decay, 
+        :epsilon, 
+        :learning_rate, 
+        :ratio, 
+        :stab,]]
 )
 world[:q] = world[:worldSize][1][1] 
 world[:n] = world[:worldSize][1][2] 
@@ -46,28 +63,28 @@ world[:err_list] = [zeros(world[:nGens])]
 # world[:step_size_y][:,2:end] .= world[:step_size_min]
 
 @variables begin 
-    F[1:world[:q], 1:world[:n]]
-    W[1:world[:q], 1:world[:n]]
-    R[1:world[:q], 1:world[:n]]
-    M[1:world[:q], 1:world[:n]]
-    Mf[1:world[:q], 1:world[:n]]
-    Ml[1:world[:q], 1:world[:n]]
-    P[1:world[:q], 1:world[:n]]
-    Pf[1:world[:q], 1:world[:n]]
-    Pl[1:world[:q], 1:world[:n]]
-    C[1:world[:q], 1:world[:n]]
-    Cf[1:world[:q], 1:world[:n]]
-    Cl[1:world[:q], 1:world[:n]]
-    Tr[1:world[:q], 1:world[:q]]
-    X[1:world[:q], 1:world[:n]]
-    Y[1:world[:q], 1:world[:n]]
-    Xf[1:world[:q], 1:world[:n]]
-    Yf[1:world[:q], 1:world[:n]]
-    Xl[1:world[:q], 1:world[:n]]
-    Yl[1:world[:q], 1:world[:n]]
+    F[1:world[:q], 1:world[:n]];
+    W[1:world[:q], 1:world[:n]];
+    R[1:world[:q], 1:world[:n]];
+    M[1:world[:q], 1:world[:n]];
+    Mf[1:world[:q], 1:world[:n]];
+    Ml[1:world[:q], 1:world[:n]];
+    P[1:world[:q], 1:world[:n]];
+    Pf[1:world[:q], 1:world[:n]];
+    Pl[1:world[:q], 1:world[:n]];
+    C[1:world[:q], 1:world[:n]];
+    Cf[1:world[:q], 1:world[:n]];
+    Cl[1:world[:q], 1:world[:n]];
+    Tr[1:world[:q], 1:world[:q]];
+    X[1:world[:q], 1:world[:n]];
+    Y[1:world[:q], 1:world[:n]];
+    Xf[1:world[:q], 1:world[:n]];
+    Yf[1:world[:q], 1:world[:n]];
+    Xl[1:world[:q], 1:world[:n]];
+    Yl[1:world[:q], 1:world[:n]];
 end
 
-worldSet = dict_list(world)
+worldSet = dict_list(world);
 for cosm in worldSet
     cosm[:gain] = cosm[:ratio]/cosm[:stab]
     cosm[:loss] = (1-cosm[:ratio])/cosm[:stab]
@@ -76,10 +93,10 @@ end
 
 println(string("Number of cosmologies: ", length(worldSet)))
 
-cosm = worldSet[job_id]
+cosm = worldSet[job_id];
 println(cosm[:ratio], " --- ", cosm[:stab], " --- ", cosm[:epsilon])
-out = copy(cosm)
-out = produceOnceSim(out, true)
+out = copy(cosm);
+out = produceOnceSim(out, true);
 println(out[:err])
 
 # @time begin

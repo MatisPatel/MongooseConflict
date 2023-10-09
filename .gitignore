@@ -7,6 +7,8 @@
 *.csv
 *.zip
 
+log*.txt
+
 #R
 # History files
 .Rhistory
