@@ -1,8 +1,9 @@
 using DrWatson
 using DataFrames 
 using CSVFiles
+using StatsBase
 
-dat = (joinpath("..", "results_data.jld2"))
+dat = load(joinpath("..", "results_data.jld2"))
 
 df = dat["df"]
 
