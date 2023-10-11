@@ -4,13 +4,11 @@ using Symbolics
 using DrWatson 
 using StatsBase
 
-# using BenchmarkTools
-
 job_id = parse(Int, ARGS[1])
 
 world = Dict{Symbol, Any}(
     :nGens => 250,
-    :worldSize => [[5, 5]],
+    :worldSize => [[8, 3], [5,5], [3, 8]],
     :ratio => collect(0.05:0.05:0.95),
     # :ratio => 0.5,
     :stab => collect(2:0.25:3),
@@ -101,47 +99,3 @@ runSim(compileCosm)
 out = copy(cosm);
 out = produceOnceSim(out, true);
 println(out[:err])
-
-# @time begin
-# Threads.@threads for cosm in worldSet
-#     println(Threads.threadid(), " --- ", cosm[:ratio], " --- ", cosm[:stab], " --- ", cosm[:epsilon])
-#     out = copy(cosm)
-#     for attempt in 1:5
-#         out[:learning_rate] = cosm[:learning_rate]/(attempt)
-#         println(out[:learning_rate])
-#         out = produceSim(out, true)
-#         println(out[:err])
-#         if out[:err] < 1E-6
-#             break
-#         end
-#     end
-# end
-# end
-
-# decay_list = [0.995]
-# lr_list = [0.01, 0.05, 0.005, 0.001]
-# tt = length(decay_list)*length(lr_list)
-
-# out_list = []
-
-# for i in 1:length(decay_list)
-#     for j in 1:length(lr_list)
-#         worldSet[1][:decay] = decay_list[i]
-#         worldSet[1][:learning_rate] = lr_list[j]
-#         println("Decay: ", worldSet[1][:decay], "\nLR: ", worldSet[1][:learning_rate])
-#         out = produceSim(worldSet[1], true)
-#         push!(out_list, out)
-#     end
-# end
-
-# using Plots
-# plt = plot();
-# for w in out_list
-#     err = clamp.(w[:err_list][2:end], 0, 100)
-#     plot!(plt, log1p.(err), label = string(w[:decay]," --- ", w[:learning_rate]));
-# end
-
-# save("test.png", plt)
-
-#  0.96 is expected at itr 40 for 6x6 should take ~30mins actually too 148s 
-#  
