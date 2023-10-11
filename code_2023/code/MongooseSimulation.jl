@@ -518,11 +518,11 @@ end
 
 function makeFocalModelM(Xf, Xl, Yf, Yl, world)
     model = makeFArray(world)
-    println(size(model))
-    println(world[:q], " ", world[:n])
+    # println(size(model))
+    # println(world[:q], " ", world[:n])
     for q in 1:world[:q]
         for n in 2:world[:n]
-            println("q: ", q, " n: ", n)
+            # println("q: ", q, " n: ", n)
             model[q, n] = world[:basem] *
             exp(-1 * ((Xl[q,n]*(n-2) + Xf[q,n]))) + 
             world[:multX]*Xf[q,n]^world[:shape_X_cost] + 
