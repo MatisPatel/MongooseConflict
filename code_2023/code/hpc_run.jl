@@ -10,7 +10,7 @@ job_id = parse(Int, ARGS[1])
 
 world = Dict{Symbol, Any}(
     :nGens => 250,
-    :worldSize => [[3, 3], [4, 4]],
+    :worldSize => [[3, 3], [5, 5]],
     :ratio => collect(0.05:0.05:0.95),
     # :ratio => 0.5,
     :stab => collect(2:0.25:3),
@@ -18,7 +18,7 @@ world = Dict{Symbol, Any}(
     :gain => 0.1,
     :loss => 0.1,
     :basem => 0.1,
-    :k => [0.25],
+    :k => [0.1],
     :b => [0.5],
     :d => [0.25],
     :epsilon => collect(2:0.25:3),
@@ -64,7 +64,7 @@ cosm[:size] = cosm[:n]*cosm[:q]
 cosm[:gradX] = zeros(cosm[:n], cosm[:q])
 cosm[:gradY] = zeros(cosm[:n], cosm[:q])
 cosm[:err] = 5
-cosm[:err_list] = [zeros(world[:nGens])]
+cosm[:err_list] = zeros(world[:nGens])
 # end
 
 @variables begin 
@@ -92,6 +92,12 @@ end
 println(string("Number of cosmologies: ", length(worldSet)))
 
 println(cosm[:ratio], " --- ", cosm[:stab], " --- ", cosm[:epsilon])
+# make temp dict and run function with 2 gens to compile runSim
+compileCosm = copy(cosm)
+compileCosm[:nGens] = 2
+compileCosm[:verbose] = false
+runSim(compileCosm)
+# run actual sim with full nGens
 out = copy(cosm);
 out = produceOnceSim(out, true);
 println(out[:err])
@@ -136,3 +142,6 @@ println(out[:err])
 # end
 
 # save("test.png", plt)
+
+#  0.96 is expected at itr 40 for 6x6 should take ~30mins actually too 148s 
+#  
