@@ -7,86 +7,86 @@ using NLsolve
 using Symbolics
 using DrWatson
 using BSON
-using StatsBase
+using Statistics
 
 #for testing ONLY 
 # ENV["SLURM_ARRAY_TASK_ID"] = 10
 # world = load(joinpath("tempDicts", string(ENV["SLURM_ARRAY_TASK_ID"], ".bson")))
 
-world = Dict{Symbol, Any}(
-    :nGens => 1,
-    :realGen => 3,
-    :worldSize => [3, 3],
-    :ratio => 0.5,
-    :stab => 5,
-    :fixed => [1,2],
-    :gain => 0.1,
-    :loss => 0.1,
-    :basem => 0.1,
-    :k => 0.5,
-    :b => 1.0,
-    :d => 0.5,
-    :epsilon => 5,
-    :multX => 0.1,
-    :multY => 0.1,
-    :shape_X_cost => 0.5, 
-    :shape_Y_cost => 0.5,
-    :grad_rate => 0.1,
-    :learning_rate => 0.01,
-    :decay => 0.9,
-    :SolFFails => 0,
-    :SolWFails => 0,
-    :SolRFails => 0,
-    :saveKeys => [
-        :multX,
-        :multY,
-        :shape_X_cost,
-        :shape_Y_cost,
-        :b,
-        :k,
-        :d,
-        :q,
-        :n,
-        :decay, 
-        :epsilon, 
-        :learning_rate, 
-        :ratio, 
-        :stab,]
-)
+# world = Dict{Symbol, Any}(
+#     :nGens => 1,
+#     :realGen => 3,
+#     :worldSize => [3, 3],
+#     :ratio => 0.5,
+#     :stab => 5,
+#     :fixed => [1,2],
+#     :gain => 0.1,
+#     :loss => 0.1,
+#     :basem => 0.1,
+#     :k => 0.5,
+#     :b => 1.0,
+#     :d => 0.5,
+#     :epsilon => 5,
+#     :multX => 0.1,
+#     :multY => 0.1,
+#     :shape_X_cost => 0.5, 
+#     :shape_Y_cost => 0.5,
+#     :grad_rate => 0.1,
+#     :learning_rate => 0.01,
+#     :decay => 0.9,
+#     :SolFFails => 0,
+#     :SolWFails => 0,
+#     :SolRFails => 0,
+#     :saveKeys => [
+#         :multX,
+#         :multY,
+#         :shape_X_cost,
+#         :shape_Y_cost,
+#         :b,
+#         :k,
+#         :d,
+#         :q,
+#         :n,
+#         :decay, 
+#         :epsilon, 
+#         :learning_rate, 
+#         :ratio, 
+#         :stab,]
+# )
 
-@variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
+# @variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
 
-# world = load(joinpath("/home", "mmp38", "mongooseConflict", "code", "tempDicts", string(ENV["SLURM_ARRAY_TASK_ID"], ".bson")))
-world[:q] = world[:worldSize][1] 
-world[:n] = world[:worldSize][2] 
-world[:size] = world[:n]*world[:q] 
-world[:gradX] = zeros(world[:q], world[:n])
-world[:gradY] = zeros(world[:q], world[:n])
-world[:step_size_x] = zeros(world[:q], world[:n])
-world[:step_size_y] = zeros(world[:q], world[:n])
-world[:err_list] = zeros(world[:nGens])
+# # world = load(joinpath("/home", "mmp38", "mongooseConflict", "code", "tempDicts", string(ENV["SLURM_ARRAY_TASK_ID"], ".bson")))
+# world[:q] = world[:worldSize][1] 
+# world[:n] = world[:worldSize][2] 
+# world[:size] = world[:n]*world[:q] 
+# world[:gradX] = zeros(world[:q], world[:n])
+# world[:gradY] = zeros(world[:q], world[:n])
+# world[:step_size_x] = zeros(world[:q], world[:n])
+# world[:step_size_y] = zeros(world[:q], world[:n])
+# world[:err_list] = zeros(world[:nGens])
 
-@variables begin 
-    F[1:world[:q], 1:world[:n]]
-    W[1:world[:q], 1:world[:n]]
-    R[1:world[:q], 1:world[:n]]
-    M[1:world[:q], 1:world[:n]]
-    Mf[1:world[:q], 1:world[:n]]
-    Ml[1:world[:q], 1:world[:n]]
-    P[1:world[:q], 1:world[:n]]
-    Pf[1:world[:q], 1:world[:n]]
-    Pl[1:world[:q], 1:world[:n]]
-    C[1:world[:q], 1:world[:n]]
-    Cf[1:world[:q], 1:world[:n]]
-    Cl[1:world[:q], 1:world[:n]]
-    Tr[1:world[:q], 1:world[:q]]
-    X[1:world[:q], 1:world[:n]]
-    Y[1:world[:q], 1:world[:n]]
-    Xf[1:world[:q], 1:world[:n]]
-    Yf[1:world[:q], 1:world[:n]]
-    Xl[1:world[:q], 1:world[:n]]
-    Yl[1:world[:q], 1:world[:n]]
-end
+# @variables begin 
+#     F[1:world[:q], 1:world[:n]]
+#     W[1:world[:q], 1:world[:n]]
+#     R[1:world[:q], 1:world[:n]]
+#     M[1:world[:q], 1:world[:n]]
+#     Mf[1:world[:q], 1:world[:n]]
+#     Ml[1:world[:q], 1:world[:n]]
+#     P[1:world[:q], 1:world[:n]]
+#     Pf[1:world[:q], 1:world[:n]]
+#     Pl[1:world[:q], 1:world[:n]]
+#     C[1:world[:q], 1:world[:n]]
+#     Cf[1:world[:q], 1:world[:n]]
+#     Cl[1:world[:q], 1:world[:n]]
+#     Tr[1:world[:q], 1:world[:q]]
+#     X[1:world[:q], 1:world[:n]]
+#     Y[1:world[:q], 1:world[:n]]
+#     Xf[1:world[:q], 1:world[:n]]
+#     Yf[1:world[:q], 1:world[:n]]
+#     Xl[1:world[:q], 1:world[:n]]
+#     Yl[1:world[:q], 1:world[:n]]
+# end
 
 function try_function(fun)
     attempts = 0
@@ -518,9 +518,16 @@ end
 
 function makeFocalModelM(Xf, Xl, Yf, Yl, world)
     model = makeFArray(world)
+    println(size(model))
+    println(world[:q], " ", world[:n])
     for q in 1:world[:q]
         for n in 2:world[:n]
-            model[q, n] = world[:basem] * exp(-1 * ((Xl[q,n]*(n-2) + Xf[q,n]))) + world[:multX]*Xf[q,n]^world[:shape_X_cost] + world[:multY]*Yf[q,n]^world[:shape_Y_cost]
+            println("q: ", q, " n: ", n)
+            # model[q, n] = world[:basem] * 
+            # exp(-1 * ((Xl[q,n]*(n-2) + 
+            # Xf[q,n]))) + 
+            # world[:multX]*Xf[q,n]^world[:shape_X_cost] + 
+            # world[:multY]*Yf[q,n]^world[:shape_Y_cost]
         end
     end
     return model
@@ -1239,198 +1246,4 @@ function RMSprop_update(learning_rate, cache1, cache2, grad, decay)
     return grad .* (learning_rate ./ ((sqrt.(0.5.*(cache1 .+ mean(cache2)))) .+ 1E-8)), cache1
 end
 
-function squash(x)
-    "squash a value between 0 and 1"
-    return (1/(1+exp(-x)))
-end
-
-
-# # debugging R 
-
-world[:tX] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-world[:tY] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-# world[:tX] = Symbolics.value.(rand(world[:q], world[:n])).*0.001
-# world[:tX][:, 1] .= 0.0
-# world[:tY] = Symbolics.value.(rand(world[:q], world[:n])).*0.001
-# world[:tY][:, 1] .= 0.0
-
-world[:update_x] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-world[:update_y] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-world[:cache_x] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-world[:cache_y] = Symbolics.value.(fill!(zeros(world[:q], world[:n]), 1E-6))
-
-u = ones(world[:q], world[:n])
-u[:, 1] .= 0.0
-world[:tW] = u
-world[:tF] = reshape(
-    repeat([1/world[:size]], world[:size]), (world[:q], world[:n])
-)
-world[:tR] = reshape(
-    repeat(
-        hcat([0 0], [1/p for p in 2:(world[:n]-1)]'), 
-        world[:q]
-    ), 
-    (world[:q], world[:n])
-)
-
-modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, modelM, modelP, modelC = makeModelExpr(world)
-
-world = updateMPC(world, modelM, modelP, modelC, modelMl, modelPl, modelCl)
-
-# create F system
-fSys = makeFsys(F, M, P, C, d, world)
-funF = build_function(
-    fSys, F, M, P, C, d, epsilon;
-    expression=Val{false}
-    );
-callFun = eval(funF[2]);
-
-rSys = Symbolics.scalarize(makeRsys(R, M, P, C, d, world));
-# R2 = collect(Symbolics.value.(R));
-# [R2[p, 1] = 0.0 for p in 1:world[:q]];
-# [R2[p, 2] = 0.0 for p in 1:world[:q]];
-rSys = substitute(rSys, Dict(vcat([R[p, 1]=> 0 for p in 1:world[:q]], [R[p, 2]=> 0 for p in 1:world[:q]])))
-
-funR = build_function(
-    rSys, R, F, M, P, C, d, epsilon;
-    expression=Val{false}
-    );
-callFunR = eval(funR[2]);
-
-# create W system 
-wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world);
-
-# wSys[world[:fixed]...] = 1-W[world[:fixed]...]
-# numInds = reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'
-# wSys[world[:fixed][1], world[:fixed][2]] = Symbolics.scalarize(1 - sum((W.*F.*numInds)./sum(F.*numInds)))
-
-for q in 1:world[:q]
-    wSys[q, 1] = W[q,1]
-end
-wSysSelec = Symbolics.scalarize(Wn./Wd);
-funW = build_function(
-    wSys, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
-    expression=Val{false}
-    );
-callFunW = eval(funW[2]);
-
-grads, directSel, indirectSel = makeSelGrads(wSysSelec, modelM, modelP, modelC, modelMf, modelMl, modelPf, modelPl, modelCf, modelCl, world);
-
-
-
-err = sum(corrErr(world[:gradX], world[:tX]) +
-corrErr(world[:gradY], world[:tY]))
-display(world[:tX])
-display(world[:gradX])
-display(world[:tY])
-display(world[:gradY])
-
-fFun(Fx, x) = callFun(
-    reshape(Fx, (world[:q], world[:n])), 
-    reshape(x, (world[:q], world[:n])),  
-    world[:M], 
-    world[:P], 
-    world[:C], 
-    world[:d], 
-    world[:epsilon]
-    )
-
-rFun(Fx, x) = callFunR(
-    reshape(Fx, (world[:q], world[:n])), 
-    reshape(x, (world[:q], world[:n])), 
-    solF.zero, 
-    world[:M], 
-    world[:P], 
-    world[:C], 
-    world[:d], 
-    world[:epsilon]
-    )
-
-wFun(Fx, x) = callFunW(
-    reshape(Fx, (world[:q], world[:n])), 
-    reshape(x, (world[:q], world[:n])), 
-    solF.zero, 
-    world[:Mf], 
-    world[:Ml], 
-    world[:Pf], 
-    world[:Pl],
-    world[:P],
-    world[:C],
-    world[:Cl],
-    world[:Cf],
-    world[:d], 
-    world[:epsilon]
-    )
-
-
-solF = genSolF(fFun, world)
-display(solF.zero)
-world[:tF] = solF.zero;
-
-solW = genSolW(wFun, world)
-display(solW.zero)
-world[:tW] = solW.zero;
-
-solR = genSolR(rFun, world)
-display(solR.zero)
-world[:tR] = solR.zero;
-
-println()
-sol = nlsolve(
-        rFun,
-        transpose(
-            reshape(
-                repeat(
-                    vcat([0, 0], [1/p for p in 2:(world[:n]-1)]), 
-                    world[:q]
-                ), 
-                (world[:q], world[:n])
-            )
-        )
-    )
-
-# unsquash sol.zero 
-println(sol.zero)
-world[:err] = 5
-world[:randStart] = false
-for i in 1:2
-    global world
-    world[:itr] = i
-    (world, e_flag) = step(world, callFun, callFunW, callFunR,
-        grads,
-        modelM, modelP, modelC, modelMl, modelPl, modelCl
-        )
-        println("X")
-        display(world[:tX])
-        println("grad X")
-        display(world[:gradX])
-        println("Y")
-        display(world[:tY])
-        println("grad Y")
-        display(world[:gradY])
-    # if e_flag == true 
-    #     println(savename(world), " \nSTEP HAD A FATAL ERROR");
-    #     break
-    # end
-
-    # err = sum(corrErr(world[:gradX], world[:tX]) +
-    # corrErr(world[:gradY], world[:tY]))
-    # if world[:verbose]
-    #     println(i, " --- ",  err)
-    # end
-    println("M")
-    display(world[:M])
-    # world[:err] = err
-    # world[:err_list][i] = err
-    # if err < 1E-6
-    #     world[:itr] = i
-    #     break
-    # end
-    # if i%1000 == 0
-    #     save(joinpath("/home", "mmp38", "rds", "hpc-work", savename(cosm, "bson")), world)
-    # end
-end
-# subSys = substitute(Symbolics.scalarize(fSys), Dict([M => world[:M], P => world[:P], C => world[:C]]))
-
-# end for module
 end
