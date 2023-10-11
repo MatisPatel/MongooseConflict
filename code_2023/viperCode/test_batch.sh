@@ -5,7 +5,7 @@
 #SBATCH -e logs/%N.%j.err
 #SBATCH -p compute
 #SBATCH -t 00:20:00
-#SBATCH --array=1-950
+#SBATCH --array=1-10
 
 module purge
 module add julia 

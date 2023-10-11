@@ -10,7 +10,7 @@ job_id = parse(Int, ARGS[1])
 
 world = Dict{Symbol, Any}(
     :nGens => 250,
-    :worldSize => [[3, 3], [5, 5]],
+    :worldSize => [[5, 5]],
     :ratio => collect(0.05:0.05:0.95),
     # :ratio => 0.5,
     :stab => collect(2:0.25:3),
@@ -18,14 +18,14 @@ world = Dict{Symbol, Any}(
     :gain => 0.1,
     :loss => 0.1,
     :basem => 0.1,
-    :k => [0.1],
-    :b => [0.5],
-    :d => [0.25],
-    :epsilon => collect(1:0.25:3),
-    :multX => [0.1],
-    :multY => [0.1],
-    :shape_X_cost => [ 2], 
-    :shape_Y_cost => [ 2],
+    :k => 0.1,
+    :b => 0.5,
+    :d => 0.25,
+    :epsilon => collect(2:0.25:3),
+    :multX => 0.1,
+    :multY => 0.1,
+    :shape_X_cost => 2, 
+    :shape_Y_cost => 2,
     :grad_rate => 0.1,
     :learning_rate => 0.01,
     :decay => 0.995,
@@ -95,7 +95,7 @@ println(cosm[:ratio], " --- ", cosm[:stab], " --- ", cosm[:epsilon])
 # make temp dict and run function with 2 gens to compile runSim
 compileCosm = copy(cosm)
 compileCosm[:nGens] = 2
-compileCosm[:verbose] = false
+compileCosm[:verbose] = true
 runSim(compileCosm)
 # run actual sim with full nGens
 out = copy(cosm);
