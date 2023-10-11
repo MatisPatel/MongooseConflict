@@ -1,14 +1,15 @@
-using MongooseSimulation
+include("MongooseSimulation.jl")
 using Distributed 
 using Symbolics 
 using DrWatson 
 using StatsBase
 
 job_id = parse(Int, ARGS[1])
+# job_id = 1
 
 world = Dict{Symbol, Any}(
-    :nGens => 250,
-    :worldSize => [[8, 3], [5,5], [3, 8]],
+    :nGens => 5,
+    :worldSize => [[3, 3], [5,5], [3, 8]],
     :ratio => collect(0.05:0.05:0.95),
     # :ratio => 0.5,
     :stab => collect(1:0.25:3),

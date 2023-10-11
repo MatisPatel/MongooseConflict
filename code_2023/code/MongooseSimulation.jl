@@ -1,6 +1,6 @@
-module MongooseSimulation
+# module MongooseSimulation
 
-export runSim, produceSim, produceOnceSim
+# export runSim, produceSim, produceOnceSim
 
 # using ModelingToolkit 
 using NLsolve
@@ -54,7 +54,7 @@ using Statistics
 #         :stab,]
 # )
 
-# @variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
+@variables g, l, d, epsilon, k, b, B, deltaX, deltaY, dummy, t
 
 # # world = load(joinpath("/home", "mmp38", "mongooseConflict", "code", "tempDicts", string(ENV["SLURM_ARRAY_TASK_ID"], ".bson")))
 # world[:q] = world[:worldSize][1] 
@@ -523,11 +523,10 @@ function makeFocalModelM(Xf, Xl, Yf, Yl, world)
     for q in 1:world[:q]
         for n in 2:world[:n]
             println("q: ", q, " n: ", n)
-            # model[q, n] = world[:basem] * 
-            # exp(-1 * ((Xl[q,n]*(n-2) + 
-            # Xf[q,n]))) + 
-            # world[:multX]*Xf[q,n]^world[:shape_X_cost] + 
-            # world[:multY]*Yf[q,n]^world[:shape_Y_cost]
+            model[q, n] = world[:basem] *
+            exp(-1 * ((Xl[q,n]*(n-2) + Xf[q,n]))) + 
+            world[:multX]*Xf[q,n]^world[:shape_X_cost] + 
+            world[:multY]*Yf[q,n]^world[:shape_Y_cost]
         end
     end
     return model
@@ -1246,4 +1245,4 @@ function RMSprop_update(learning_rate, cache1, cache2, grad, decay)
     return grad .* (learning_rate ./ ((sqrt.(0.5.*(cache1 .+ mean(cache2)))) .+ 1E-8)), cache1
 end
 
-end
+# end
