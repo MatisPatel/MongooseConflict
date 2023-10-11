@@ -1,6 +1,6 @@
-# module MongooseSimulation
+module MongooseSimulation
 
-# export runSim, produceSim, produceOnceSim
+export runSim, produceSim, produceOnceSim
 
 # using ModelingToolkit 
 using NLsolve
@@ -1433,4 +1433,4 @@ end
 # subSys = substitute(Symbolics.scalarize(fSys), Dict([M => world[:M], P => world[:P], C => world[:C]]))
 
 # end for module
-# end
+end
