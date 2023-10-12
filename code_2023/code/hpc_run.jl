@@ -9,7 +9,7 @@ job_id = parse(Int, ARGS[1])
 
 world = Dict{Symbol, Any}(
     :nGens => 250,
-    :worldSize => [[3, 3], [4, 4], [5, 5]],
+    :worldSize => [[3,3], [4, 4], [5, 5]],
     :ratio => collect(0.05:0.05:0.95),
     # :ratio => 0.5,
     :stab => collect(1:0.25:3),
