@@ -756,7 +756,7 @@ function genSolR(rFun, world)
         transpose(
             reshape(
                 repeat(
-                    vcat([0, 0], [1/p for p in 2:(world[:n]-1)]), 
+                    vcat([0, 0], [0.45 for p in 2:(world[:n]-1)]), 
                     world[:q]
                 ), 
                 (world[:q], world[:n])
