@@ -412,8 +412,8 @@ function addFightsR(Rp, R, F, C, epsilon, world)
                     pEncounter  =  F[q, n] * F[qOpp, nOpp] * epsilon
                     pVictory    =  victory((n-1) * C[q, n], (nOpp-1) * C[qOpp, nOpp])
                     # print(pVictory)
-                    fWin = pEncounter*pVictory
-                    fLoss = pEncounter*(1-pVictory)
+                    fWin = pEncounter * pVictory
+                    fLoss = pEncounter * (1-pVictory)
                     # fight logic 
                     # what is focal patch is minimal richness? then can only win losses dont change freq
                     # or if qOpp is maximum and q is less than it
@@ -512,7 +512,7 @@ function makeFsys(F, M, P, C, d, world)
     Fp3 = addLocBirth(copy(Fp2), F, P, d, world)
     Fp4 = addImmigration(copy(Fp3), F, P, d, world)
     Fp5 = addFights(copy(Fp4), F, C, epsilon, world)
-    Fp5[1,1] = 1 - sum(F) + F[1,1]
+    Fp5[1,1] = 1 - sum(F)
     return Fp5
 end
 
@@ -598,6 +598,7 @@ function makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world)
     Wn6, Wd6 = addDistantBirth(copy(Wn5), copy(Wd5), W, F, Pf, world)
     wSys = Symbolics.scalarize(Wn6./Wd6.-W)
     wSys[1,2] = 1-W[1,2]
+    # TODO change the wSys to be average. 
     # for q in 1:world[:q]
     #     wSys[q, 1] = W[q,1]
     # end
@@ -1060,7 +1061,11 @@ function runSim(world)
     # R2 = collect(Symbolics.value.(R));
     # [R2[p, 1] = 0.0 for p in 1:world[:q]];
     # [R2[p, 2] = 0.0 for p in 1:world[:q]];
-    rSys = substitute(rSys, Dict(vcat([R[p, 1]=> 0 for p in 1:world[:q]], [R[p, 2]=> 0 for p in 1:world[:q]])))
+    # rSys = substitute(rSys, Dict(vcat([R[p, 1]=> 0 for p in 1:world[:q]], [R[p, 2]=> 0 for p in 1:world[:q]])))
+    for q in 1:world[:q]
+        rSys[q, 1] = 0.0
+        rSys[q, 2] = 0.0
+    end
 
     funR = build_function(
         rSys, R, F, M, P, C, d, epsilon;

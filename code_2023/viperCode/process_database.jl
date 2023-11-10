@@ -14,6 +14,7 @@ truncatedF = [x[:, 2:end] for x in df.tF]
 normF = [x./sum(x) for x in truncatedF]
 df[!, :normF] = normF 
 df[!, :popSize] = [sum(x) for x in truncatedF]
+df[!, :harshness] = [1-x for x in df.ratio]
 
 # add truncated tW as 1st col are states with no inds
 truncatedW = [x[:, 2:end] for x in df.tW]
