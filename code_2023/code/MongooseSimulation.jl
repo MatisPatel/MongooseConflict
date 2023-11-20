@@ -1083,6 +1083,8 @@ function runSim(world)
     for q in 1:world[:q]
         wSys[q, 1] = W[q,1]
     end
+    wSys[1,2] = 1 - sum(W)
+    # TODO: check the normalisiation is correct 
     wSysSelec = Symbolics.scalarize(Wn./Wd);
     funW = build_function(
         wSys, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
