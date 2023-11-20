@@ -111,10 +111,16 @@ for ratio in 0.1:0.1:0.9
     callFunR = eval(funR[2]);
 
     wSys, Wn, Wd = makeWsys(W, F, Mf, Ml, P, Pf, Pl, C, Cf, Cl, d, epsilon, world);
-
+    # set the non inhabited patches to 0 
     for q in 1:world[:q]
         wSys[q, 1] = W[q,1]
     end
+    # set the fixed patches to the average fitness 
+    numInds = reshape(repeat([x-1 for x in 1:world[:n]], world[:q]), (world[:n],world[:q]))'
+    # wSys[1, 2] = 1-Symbolics.scalarize(sum(W.*F.*numInds)/sum(F.*numInds))
+    # wSys = substitute(Symbolics.scalarize(wSys), Dict(W[p, 1]=> 0 for p in 1:world[:q]))
+    wSys[1,2] = 1 - sum(W)
+
     wSysSelec = Symbolics.scalarize(Wn./Wd);
     funW = build_function(
         wSys, W, F, Mf, Ml, Pf, Pl, P, C, Cl, Cf, d, epsilon;
