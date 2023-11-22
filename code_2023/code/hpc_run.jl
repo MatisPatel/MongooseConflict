@@ -12,7 +12,7 @@ world = Dict{Symbol, Any}(
     :worldSize => [[3,8], [8, 3], [4, 6], [6, 4]],
     :ratio => collect(0.05:0.05:0.95),
     # :ratio => 0.5,
-    :stab => collect(1:0.5:3),
+    :stab => collect(1:1:3),
     :fixed => [[1,2]],
     :gain => 0.1,
     :loss => 0.1,
@@ -99,4 +99,5 @@ runSim(compileCosm)
 # run actual sim with full nGens
 out = copy(cosm);
 out = produceOnceSim(out, true);
+out = re_evaluate_world_on_ratios(out, 0.1:0.1:0.9)
 println(out[:err])
