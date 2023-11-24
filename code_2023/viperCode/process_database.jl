@@ -3,7 +3,12 @@ using DataFrames
 using CSVFiles
 using StatsBase
 
-dat = load(joinpath("..", "results_data.jld2"))
+# function to calculate means and vars for each peterbed run 
+function calc_mean_vars(ratio, df)
+    return nothing 
+end
+
+dat = load(joinpath("..", "data", "results_2023_11_23.jld2"))
 
 df = dat["df"]
 df = filter(df-> !(isnan(df[:err])), df)
