@@ -9,7 +9,7 @@ job_id = parse(Int, ARGS[1])
 
 world = Dict{Symbol, Any}(
     :nGens => 500,
-    :worldSize => [[3,8], [8, 3], [4, 6], [6, 4]],
+    :worldSize => [[3,8], [8, 3], [3,3], [4,4], [4, 6], [6, 4]],
     :ratio => collect(0.05:0.05:0.95),
     # :ratio => 0.5,
     :stab => collect(1:1:3),
@@ -98,6 +98,7 @@ compileCosm[:verbose] = true
 runSim(compileCosm)
 # run actual sim with full nGens
 out = copy(cosm);
-out = produceOnceSim(out, true);
+out = produceOnceSim(out, false);
 out = re_evaluate_world_on_ratios(out, 0.1:0.1:0.9)
+wsave(joinpath("..", "data", savename(out, "bson")), res)
 println(out[:err])
