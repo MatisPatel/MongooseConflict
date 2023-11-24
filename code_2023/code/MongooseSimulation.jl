@@ -1433,6 +1433,7 @@ end
 
 function re_evaluate_world_on_ratios(world, range)
     for ratio in range
+        println("Re-evaluating on ratio: ", ratio)
         world = re_evaluate_world(world, ratio)
     end
     return world

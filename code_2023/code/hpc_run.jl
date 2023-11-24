@@ -3,6 +3,7 @@ using Distributed
 using Symbolics 
 using DrWatson 
 using StatsBase
+using BSON: save, load
 
 job_id = parse(Int, ARGS[1])
 # job_id = 1
@@ -99,6 +100,13 @@ runSim(compileCosm)
 # run actual sim with full nGens
 out = copy(cosm);
 out = produceOnceSim(out, false);
+println("Running perturbations")
+@time begin
 out = re_evaluate_world_on_ratios(out, 0.1:0.1:0.9)
-wsave(joinpath("..", "data", savename(out, "bson")), res)
+end
+name = savename(cosm, "bson", accesses=cosm[:saveKeys])
+location = joinpath("..", "data", name)
+println("Saving, ", location)
+wsave(location, out)
 println(out[:err])
+println("finished")
