@@ -3,7 +3,7 @@ using Distributed
 using Symbolics 
 using DrWatson 
 using StatsBase
-using BSON: save, load
+using BSON
 
 job_id = parse(Int, ARGS[1])
 # job_id = 1
