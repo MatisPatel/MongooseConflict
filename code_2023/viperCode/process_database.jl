@@ -8,7 +8,7 @@ function calc_mean_vars(ratio, df)
     return nothing 
 end
 
-dat = load(joinpath("..", "data", "results_2023_11_23.jld2"))
+dat = load(joinpath("..", "data", "results_2023_11_29.jld2"))
 
 df = dat["df"]
 df = filter(df-> !(isnan(df[:err])), df)
