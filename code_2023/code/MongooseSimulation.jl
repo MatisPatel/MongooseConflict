@@ -1427,7 +1427,8 @@ function re_evaluate_world(world, ratio)
     catch
         world[Symbol("tW", "_", ratio)] = solW
     end
-
+    
+    world[:ratio] = evolved_ratio
     return world
 end
 
