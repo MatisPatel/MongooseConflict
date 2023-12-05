@@ -2,7 +2,7 @@ using DrWatson
 using BSON
 using DataFrames
 
-datdir = joinpath("..", "data", "2023_11_23")
+datdir = joinpath("..", "data", "2023_11_29")
 
 files = readdir(datdir)
 
