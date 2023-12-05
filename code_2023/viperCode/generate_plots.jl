@@ -5,6 +5,32 @@ using DataFrames
 df = load("processed_df.jld2")["df"]
 save("plotData.csv", df)
 
+function make_mean_plots(df, q, n)
+    dfplot = filter(row -> row[:q] == q && row[:n] == n, df)
+
+    # plot of meanX expression vs ratio and save the plot
+    plt = plot(dfplot, x=:harshness, y=:meanExprX, color=:epsilon, facet_row=:stab);
+    savefig(plt, "../graphs/$(q)x$(n)_ratio_meanXexpr.png")
+
+    # plot of meanY expression vs harshness and save the plot 
+    plt = plot(dfplot, x=:harshness, y=:meanExprY, color=:epsilon, facet_row=:stab);
+    savefig(plt, "../graphs/$(q)x$(n)_ratio_meanYexpr.png")
+
+    # plot of meanR vs harshness and save plot 
+    plt = plot(dfplot, x=:harshness, y=:meanR, color=:epsilon, facet_row=:stab);
+    savefig(plt, "../graphs/$(q)x$(n)_ratio_meanR.png")
+
+    # plot of meanW vs harshness and save plot 
+    plt = plot(dfplot, x=:harshness, y=:meanW, color=:epsilon, facet_row=:stab);
+    savefig(plt, "../graphs/$(q)x$(n)_ratio_meanW.png")
+
+    # plot of varW vs harshness and save plot 
+    plt = plot(dfplot, x=:harshness, y=:varW, color=:epsilon, facet_row=:stab);
+    savefig(plt, "../graphs/$(q)x$(n)_ratio_varW.png")
+end
+
+make_mean_plots(df, 3, 3)
+
 # filter df for q=3 n=3
 dfplot = filter(df -> 
     # all(df[:tR].>=-0.01) &&
