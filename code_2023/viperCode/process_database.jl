@@ -7,11 +7,22 @@ using StatsBase
 function calc_mean_vars(ratio, df)
     return nothing 
 end
-
-dat = load(joinpath("..", "data", "results_2023_11_29.jld2"))
+input = "results_2023_12_07.jld2"
+dat = load(joinpath("..", "data", input))
 
 df = dat["df"]
-df = filter(df-> !(isnan(df[:err])), df)
+# clamp and round values
+df[!, :tR] = [clamp.(x, 0, 1) for x in df.tR]
+df[!, :tF] = [clamp.(x, 0, 1) for x in df.tF]
+df[!, :tX] = [clamp.(x, 0, 1) for x in df.tX]
+df[!, :tY] = [clamp.(x, 0, 1) for x in df.tY]
+df[!, :tW] = [round.(x, digits=6) for x in df.tW]
+df[!, :tR] = [round.(x, digits=6) for x in df.tR]
+df[!, :tF] = [round.(x, digits=6) for x in df.tF]
+df[!, :tX] = [round.(x, digits=6) for x in df.tX]
+df[!, :tY] = [round.(x, digits=6) for x in df.tY]
+# filter out rows with NaNs in err column
+# df = filter(df-> !(isnan(df[:err])), df)
 # add relW col to df 
 df[!, :relW] = df[!, :tW]./mean.(df[!, :tW])
 # add normalised tF as 1st col are states with no inds 
@@ -20,6 +31,7 @@ normF = [x./sum(x) for x in truncatedF]
 df[!, :normF] = normF 
 df[!, :popSize] = [sum(x) for x in truncatedF]
 df[!, :harshness] = [1-x for x in df.ratio]
+
 
 # add truncated tW as 1st col are states with no inds
 truncatedW = [x[:, 2:end] for x in df.tW]
@@ -61,4 +73,4 @@ df[!, :shapeXY] = [string(x, ":", y) for (x, y) in zip(df[!, :shape_X_cost], df[
 sort!(df, [:q, :n, :ratio, :b, :k, :d])
 
 # save dataframe as jld2 
-save("processed_df.jld2", "df", df)
+save(joinpath("..", "results", string("processed_", input)), "df", df)
