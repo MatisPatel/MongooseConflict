@@ -104,6 +104,7 @@ println("Running perturbations")
 @time begin
 out = re_evaluate_world_on_ratios(out, 0.1:0.1:0.9)
 end
+out[:ratio] = cosm[:ratio]
 name = savename(cosm, "bson", accesses=cosm[:saveKeys])
 location = joinpath("..", "data", name)
 println("Saving, ", location)
