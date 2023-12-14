@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH -J mongoose_test
+#SBATCH -J mongoose_project
 #SBATCH -n 1
 #SBATCH -o logs/%N.%j.out
 #SBATCH -e logs/%N.%j.err
 #SBATCH -p compute
-#SBATCH -t 00:60:00
-#SBATCH --array=1-1000
+#SBATCH -t 02:00:00
+#SBATCH --array=1-456
 
 mult=$1
 # create NEW_TASK_ID which is the SLURM_ARRAY_TASK_ID but offset by a multiplier variable to cover all params
