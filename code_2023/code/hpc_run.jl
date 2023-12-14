@@ -10,20 +10,20 @@ job_id = parse(Int, ARGS[1])
 
 world = Dict{Symbol, Any}(
     :nGens => 500,
-    :worldSize => [[3,8], [8, 3], [4, 6], [6, 4]],
-    :ratio => collect(0.05:0.1:0.95),
+    :worldSize => [[3,3], [4,4], [5, 5]],
+    :ratio => collect(0.05:0.05:0.95),
     # :ratio => 0.5,
     :stab => 2,
     :fixed => [[1,2]],
     :gain => 0.1,
     :loss => 0.1,
-    :basem => 0.1,
-    :k => [0.2, 0.1, 0.05],
-    :b => [1, 0.5, 0.25],
-    :d => [0.5, 0.25, 0.125],
+    :basem => [0.1, 0.01],
+    :k => 0.1,
+    :b => 1,
+    :d => 0.1,
     :epsilon => 2,
-    :multX => [0.1, 0.0],
-    :multY => [0.1, 0.0],
+    :multX => [0.01, 0.1],
+    :multY => [0.01, 0.1],
     :shape_X_cost => 2, 
     :shape_Y_cost => 2,
     :grad_rate => 0.1,
@@ -100,11 +100,21 @@ runSim(compileCosm)
 # run actual sim with full nGens
 out = copy(cosm);
 out = produceOnceSim(out, false);
+
+name = savename(cosm, "bson", accesses=cosm[:saveKeys])
+location = joinpath("..", "data", name)
+println("Saving, ", location)
+wsave(location, out)
+println(out[:err])
+println("finished")
+
 println("Running perturbations")
 @time begin
 out = re_evaluate_world_on_ratios(out, 0.1:0.1:0.9)
 end
 out[:ratio] = cosm[:ratio]
+out[:peturbed] = true
+
 name = savename(cosm, "bson", accesses=cosm[:saveKeys])
 location = joinpath("..", "data", name)
 println("Saving, ", location)
