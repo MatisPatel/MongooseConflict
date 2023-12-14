@@ -1112,7 +1112,7 @@ function runSim(world)
         end
         world[:err] = err
         world[:err_list][i] = err
-        if err < 1E-6
+        if err/world[:size] < 1E-6
             world[:itr] = i
             break
         end
