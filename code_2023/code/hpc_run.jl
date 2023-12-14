@@ -34,6 +34,7 @@ world = Dict{Symbol, Any}(
     :SolFFails => 0,
     :SolWFails => 0,
     :SolRFails => 0,
+    :peturbed => false,
     :saveKeys => [[
         :multX,
         :multY,
@@ -48,7 +49,8 @@ world = Dict{Symbol, Any}(
         :epsilon, 
         :learning_rate, 
         :ratio, 
-        :stab,]]
+        :stab,
+        :peturbed]]
 )
 
 worldSet = dict_list(world);
@@ -100,11 +102,21 @@ runSim(compileCosm)
 # run actual sim with full nGens
 out = copy(cosm);
 out = produceOnceSim(out, false);
+
+name = savename(cosm, "bson", accesses=cosm[:saveKeys])
+location = joinpath("..", "data", name)
+println("Saving, ", location)
+wsave(location, out)
+println(out[:err])
+println("finished")
+
 println("Running perturbations")
 @time begin
 out = re_evaluate_world_on_ratios(out, 0.1:0.1:0.9)
 end
 out[:ratio] = cosm[:ratio]
+out[:peturbed] = true
+
 name = savename(cosm, "bson", accesses=cosm[:saveKeys])
 location = joinpath("..", "data", name)
 println("Saving, ", location)
