@@ -1286,9 +1286,9 @@ function re_evaluate_world(world, ratio)
         Yl[1:world[:q], 1:world[:n]]
     end
     # update world [:ratio] and rebuild equations and resolve them for tF, tW and tR 
-    world[:ratio] = ratio
-    world[:gain] = world[:ratio]/world[:stab]
-    world[:loss] = (1-world[:ratio])/world[:stab]
+    world[:peturbed] = ratio
+    world[:gain] = world[:peturbed]/world[:stab]
+    world[:loss] = (1-world[:peturbed])/world[:stab]
     fSys = makeFsys(F, M, P, C, d, world)
 
     fSys = makeFsys(F, M, P, C, d, world)
@@ -1432,12 +1432,12 @@ function re_evaluate_world(world, ratio)
     return world
 end
 
-function re_evaluate_world_on_ratios(world, range)
-    for ratio in range
-        println("Re-evaluating on ratio: ", ratio)
-        world = re_evaluate_world(world, ratio)
-    end
-    return world
-end
+# function re_evaluate_world_on_ratios(world, range)
+#     for ratio in range
+#         println("Re-evaluating on ratio: ", ratio)
+#         world = re_evaluate_world(world, ratio)
+#     end
+#     return world
+# end
 
 # end

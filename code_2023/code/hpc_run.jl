@@ -10,7 +10,7 @@ job_id = parse(Int, ARGS[1])
 
 world = Dict{Symbol, Any}(
     :nGens => 500,
-    :worldSize => [[3,3], [4,4], [5, 5]],
+    :worldSize => [[3,3]],
     :ratio => collect(0.05:0.05:0.95),
     # :ratio => 0.5,
     :stab => 2,
@@ -112,14 +112,14 @@ println("finished")
 
 println("Running perturbations")
 @time begin
-out = re_evaluate_world_on_ratios(out, 0.1:0.1:0.9)
+for peturbed_ratio in 0.1:0.1:0.9
+    new_world = deepcopy(out)
+    peturbed_world = re_evaluate_world(new_world, peturbed_ratio)
+    name = savename(peturbed_world, "bson", accesses=peturbed_world[:saveKeys])
+    location = joinpath("..", "data", name)
+    println("Saving, ", location)
+    wsave(location, peturbed_world)
+    println(peturbed_world[:err])
+    println("finished")
 end
-out[:ratio] = cosm[:ratio]
-out[:peturbed] = true
-
-name = savename(cosm, "bson", accesses=cosm[:saveKeys])
-location = joinpath("..", "data", name)
-println("Saving, ", location)
-wsave(location, out)
-println(out[:err])
-println("finished")
+end

@@ -4,7 +4,7 @@
 #SBATCH -o logs/%N.%j.out
 #SBATCH -e logs/%N.%j.err
 #SBATCH -p compute
-#SBATCH -t 02:00:00
+#SBATCH -t 01:00:00
 #SBATCH --array=1-456
 
 mult=$1
