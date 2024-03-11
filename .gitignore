@@ -4,6 +4,9 @@
 *.log
 *.png 
 *.pdf
+*.DS_Store
+*.DS_store
+*.toml
 # *.csv
 # *.zip
 
