@@ -7,7 +7,7 @@ using StatsBase
 function calc_mean_vars(ratio, df)
     return nothing 
 end
-input = "results_2023_12_14.jld2"
+input = "results_2024_03_11.jld2"
 dat = load(joinpath("..", "data", input))
 
 df = dat["df"]
@@ -24,13 +24,14 @@ df[!, :tY] = [round.(x, digits=6) for x in df.tY]
 # filter out rows with NaNs in err column
 # df = filter(df-> !(isnan(df[:err])), df)
 # add relW col to df 
-df[!, :relW] = df[!, :tW]./mean.(df[!, :tW])
+df = dropmissing(df, :tW)
+df[!, :relW] = (df[!, :tW])./mean.((df[!, :tW]))
 # add normalised tF as 1st col are states with no inds 
 truncatedF = [x[:, 2:end] for x in df.tF]
 normF = [x./sum(x) for x in truncatedF]
 df[!, :normF] = normF 
 df[!, :popSize] = [sum(x) for x in truncatedF]
-df[!, :harshness] = [1-x for x in df.ratio]
+df[!, :harshness] = round.([1-x for x in df.ratio], digits=3)
 
 
 # add truncated tW as 1st col are states with no inds
@@ -69,6 +70,9 @@ df[!, :multXY] = [string(x, ":", y) for (x, y) in zip(df[!, :multX], df[!, :mult
 
 # make column of pasted togehter shape of X and Y 
 df[!, :shapeXY] = [string(x, ":", y) for (x, y) in zip(df[!, :shape_X_cost], df[!, :shape_Y_cost])]
+
+# make column of pasted togehter q and n 
+df[!, :simDim] = [string(x, ":", y) for (x, y) in zip(df[!, :q], df[!, :n])]
 
 sort!(df, [:q, :n, :ratio, :b, :k, :d])
 
