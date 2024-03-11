@@ -5,7 +5,7 @@
 #SBATCH -e logs/%N.%j.err
 #SBATCH -p compute
 #SBATCH -t 01:00:00
-#SBATCH --array=1-456
+#SBATCH --array=1-304
 
 mult=$1
 # create NEW_TASK_ID which is the SLURM_ARRAY_TASK_ID but offset by a multiplier variable to cover all params

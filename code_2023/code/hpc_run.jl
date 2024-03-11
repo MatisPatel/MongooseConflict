@@ -10,7 +10,7 @@ job_id = parse(Int, ARGS[1])
 
 world = Dict{Symbol, Any}(
     :nGens => 500,
-    :worldSize => [[3,3], [4,4], [5,5]],
+    :worldSize => [[3,3], [4,4]],
     :ratio => collect(0.05:0.05:0.95),
     # :ratio => 0.5,
     :stab => 2,
@@ -45,6 +45,7 @@ world = Dict{Symbol, Any}(
         :d,
         :q,
         :n,
+        :basem,
         :decay, 
         :epsilon, 
         :learning_rate, 
