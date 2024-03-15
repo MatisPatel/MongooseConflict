@@ -7,7 +7,7 @@ using StatsBase
 function calc_mean_vars(ratio, df)
     return nothing 
 end
-input = "results_2024_03_11.jld2"
+input = "results_2024_03_11b.jld2"
 dat = load(joinpath("..", "data", input))
 
 df = dat["df"]
